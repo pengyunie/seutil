@@ -19,8 +19,12 @@ class GitHubUtils:
     logger = LoggingUtils.get_logger("GitHubUtils", LoggingUtils.DEBUG)
 
     GITHUB_SEARCH_ITEMS_MAX = 1000
-    DEFAULT_ACCESS_TOKEN = _config.get_config("github_access_token")
-    DEFAULT_GITHUB_OBJECT = Github(DEFAULT_ACCESS_TOKEN, per_page=100)
+    try:
+        DEFAULT_ACCESS_TOKEN = _config.get_config("github_access_token")
+        DEFAULT_GITHUB_OBJECT = Github(DEFAULT_ACCESS_TOKEN, per_page=100)
+    except:
+        logger.warning("Fail to get github_access_token from config file.  Using GitHubUtils APIs will require compulsory input access_token")
+    # end try
 
     @classmethod
     def get_github(cls, access_token: str = None) -> Github:

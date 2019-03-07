@@ -2,8 +2,8 @@ import unittest
 from pathlib import Path
 from typing import *
 
-from pyutil import IOUtils, BashUtils, LoggingUtils
-from pyutil.project import Project
+from seutil import IOUtils, BashUtils, LoggingUtils
+from seutil.project import Project
 from .TestSupport import TestSupport
 
 

@@ -8,7 +8,7 @@ from typing import *
 class Macros:
     THIS_DIR: Path = Path(os.path.dirname(os.path.realpath(__file__)))
     SYS_DIR: Path = Path(sys.prefix)
-    DEFAULT_CONFIG_FILE: Path = SYS_DIR / "config" / "pyutil_config.json"
+    DEFAULT_CONFIG_FILE: Path = SYS_DIR / "config" / "seutil_config.json"
 
     if os.getenv("HOME") is not None:
         HOME_DIR: Path = Path.home()

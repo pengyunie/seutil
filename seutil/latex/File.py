@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import *
 
-from pyutil import IOUtils, LoggingUtils
+from .. import IOUtils, LoggingUtils
 from .Macro import Macro
 from .Table import Table
 

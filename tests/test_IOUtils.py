@@ -2,7 +2,7 @@ import os
 import unittest
 from pathlib import Path
 
-from pyutil import IOUtils
+from seutil import IOUtils
 from .TestSupport import TestSupport
 
 

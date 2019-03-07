@@ -2,7 +2,7 @@ import shutil
 from pathlib import Path
 from typing import *
 
-from pyutil import IOUtils, BashUtils, LoggingUtils
+from .. import IOUtils, BashUtils, LoggingUtils
 from .ProjectResults import ProjectResults
 
 

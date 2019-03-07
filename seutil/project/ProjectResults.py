@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import *
 
-from pyutil import IOUtils, Stream
+from .. import IOUtils, Stream
 
 
 class ProjectResults:

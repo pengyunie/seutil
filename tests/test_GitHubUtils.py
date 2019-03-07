@@ -2,7 +2,7 @@ import os
 import unittest
 from github.GithubException import GithubException
 
-from pyutil import GitHubUtils
+from seutil import GitHubUtils
 from .TestSupport import TestSupport
 
 

@@ -1,7 +1,7 @@
 import os
 import unittest
 import logging
-from pyutil.LoggingUtils import LoggingUtils
+from seutil.LoggingUtils import LoggingUtils
 
 
 class test_LoggingUtils(unittest.TestCase):

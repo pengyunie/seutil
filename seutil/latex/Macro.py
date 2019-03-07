@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 from typing import *
-from pyutil import LoggingUtils, IOUtils
+from .. import LoggingUtils, IOUtils
 
 
 class Macro:
