@@ -19,5 +19,5 @@ setuptools.setup(
         "Operating System :: POSIX :: Linux",
     ),
     install_requires=["numpy", "PyYAML", "PyGitHub", "unidiff"],
-    data_files=[("config", ["pyutil_config.json"]),]
+    #data_files=[("config", ["pyutil_config.json"]),]
 )
