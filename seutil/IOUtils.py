@@ -190,7 +190,7 @@ class IOUtils:
     def jsonfy(cls, obj):
         """
         Turns an object to a json-compatible data structure.
-        A json-compatible data can only have list, dict, str, int and float.
+        A json-compatible data can only have list, dict (with str keys), str, int and float.
         Any object of other classes will be casted through (try each option in order, if applicable):
         1. JSONFY function, which takes no argument and returns a json-compatible data;
            should have the name {@link IOUtils#JSONFY_FUNC_NAME};
@@ -223,7 +223,6 @@ class IOUtils:
            should have the name {@link IOUtils#DEJSONFY_FUNC_NAME};
         2. JSONFY_ATTR field, which is a dict of attribute name-type pairs, that will be extracted from the object to a dict;
            should have the name {@link IOUtils#JSONFY_ATTR_FIELD_NAME};
-        @see IOUtils#jsonfy
         """
         if isinstance(clz, str):
             clz = globals()[clz]
