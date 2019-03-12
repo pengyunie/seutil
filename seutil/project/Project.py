@@ -34,6 +34,11 @@ class Project:
         self.results: ProjectResults = None
         return
 
+    jsonfy_attr = {
+        "full_name": str,
+        "url": str,
+    }
+
     def init_results(self, results_dir: Path = None):
         if results_dir is None:
             results_dir = self.default_results_dir
