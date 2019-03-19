@@ -39,6 +39,27 @@ class Project:
         "url": str,
     }
 
+    def jsonfy(self) -> dict:
+        jsonfied = dict()
+        jsonfied["full_name"] = self.full_name
+        jsonfied["url"] = self.url
+        for e, v in self.data:
+            if e in ["full_name", "url"]:
+                continue
+            else:
+                jsonfied[e] = v
+            # end if
+        # end for
+        return jsonfied
+
+    @classmethod
+    def dejsonfy(cls, jsonfied) -> "Project":
+        obj = cls()
+        obj.full_name = jsonfied["full_name"]
+        obj.url = jsonfied["url"]
+        obj.data.update(jsonfied)
+        return obj
+
     def init_results(self, results_dir: Path = None):
         if results_dir is None:
             results_dir = self.default_results_dir
@@ -178,6 +199,20 @@ class Project:
 
         self.logger.info(self.logger_prefix + "Checking-out to {}".format(revision))
         cmd_checkout = "git checkout {} {}".format("-f" if is_forced else "", revision)
+        with IOUtils.cd(self.checkout_dir):
+            BashUtils.run(cmd_checkout)
+        # end with
+        return
+
+    def clean(self) -> None:
+        """
+        Cleans any extra files in the repository that is not indexed by git (either git-ignored or not).
+        :requires: the project to be cloned.
+        """
+        self.require_cloned()
+
+        self.logger.info(self.logger_prefix + "Cleaining")
+        cmd_checkout = "git clean -ffdx"
         with IOUtils.cd(self.checkout_dir):
             BashUtils.run(cmd_checkout)
         # end with

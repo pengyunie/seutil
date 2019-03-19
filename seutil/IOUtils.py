@@ -233,7 +233,7 @@ class IOUtils:
         elif isinstance(data, list):
             return [cls.dejsonfy(item, clz) for item in data]
         elif clz is not None and hasattr(clz, cls.DEJSONFY_FUNC_NAME):
-            return clz.deserialize(data)
+            return clz.dejsonfy(data)
         elif clz is not None and hasattr(clz, cls.JSONFY_ATTR_FIELD_NAME):
             obj = clz()
             for attr, attr_clz in getattr(clz, cls.JSONFY_ATTR_FIELD_NAME).items():
