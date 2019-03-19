@@ -211,7 +211,7 @@ class Project:
         """
         self.require_cloned()
 
-        self.logger.info(self.logger_prefix + "Cleaining")
+        self.logger.info(self.logger_prefix + "Cleaning")
         cmd_checkout = "git clean -ffdx"
         with IOUtils.cd(self.checkout_dir):
             BashUtils.run(cmd_checkout)
