@@ -28,7 +28,9 @@ class BashUtils:
 
         if expected_return_code is not None:
             if completed_process.returncode != expected_return_code:
-                raise RuntimeError(f"Expected {expected_return_code} but returned {completed_process.returncode}; While executing bash command '{cmd}'.")
+                stdout = completed_process.stdout.decode("utf-8", errors="ignore")
+                stderr = completed_process.stderr.decode("utf-8", errors="ignore")
+                raise RuntimeError(f"Expected {expected_return_code} but returned {completed_process.returncode}; While executing bash command '{cmd}'.\nstdout: {stdout}\nstderr: {stderr}")
         # end if, if
 
         return_values = []
