@@ -267,9 +267,7 @@ class GitHubUtils:
 
     @classmethod
     def is_url_valid_git_repo(cls, url: str) -> bool:
-        test_command = f"git ls-remote {url}"
-        return_code = BashUtils.run(test_command, is_get_return_code=True, is_get_stdout=False)
-        if return_code == 0:
+        if BashUtils.run(f"git ls-remote {url}").return_code == 0:
             return True
         else:
             return False

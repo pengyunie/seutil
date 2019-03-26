@@ -113,7 +113,7 @@ class test_project(unittest.TestCase):
 
             # For each revision, count number of files
             project.for_each_revision(
-                lambda p, r: p.results.dump_revision_result(r, "count_files.json", BashUtils.run("git ls-files | wc -l")),
+                lambda p, r: p.results.dump_revision_result(r, "count_files.json", BashUtils.run("git ls-files | wc -l").stdout),
                 all_revisions[-10:]
             )
             project.for_each_revision(

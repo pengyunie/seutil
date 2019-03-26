@@ -8,42 +8,29 @@ class BashUtils:
     Utility functions for running Bash commands.
     """
 
+    class RunResult(NamedTuple):
+        return_code: int
+        stdout: str
+        stderr: str
+
     @classmethod
     def run(cls, cmd: str,
-            expected_return_code: int = None,
-            is_get_return_code: bool = False,
-            is_get_stdout: bool = True,
-            is_get_stderr: bool = False) -> Any:
+            expected_return_code: int = None) -> RunResult:
         """
         Runs a Bash command and returns the stdout.
         :param cmd: the command to run.
         :param expected_return_code: if set to an int, will raise exception if the return code mismatch.
-        :param is_get_return_code: if get the return code.
-        :param is_get_stdout: if get the stdout content.
-        :param is_get_stderr: if get the stderr content.
-        If multiple return values are requested, the values are returned in a tuple with the order (return_code, stdout, stderr).
-        :return: stdout.
+        :return: the run result, which is a named tuple with field return_code, stdout, stderr.
         """
         completed_process = subprocess.run(["bash", "-c", cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+        return_code = completed_process.returncode
+        stdout = completed_process.stdout.decode("utf-8", errors="ignore")
+        stderr = completed_process.stderr.decode("utf-8", errors="ignore")
+
         if expected_return_code is not None:
-            if completed_process.returncode != expected_return_code:
-                stdout = completed_process.stdout.decode("utf-8", errors="ignore")
-                stderr = completed_process.stderr.decode("utf-8", errors="ignore")
-                raise RuntimeError(f"Expected {expected_return_code} but returned {completed_process.returncode}; While executing bash command '{cmd}'.\nstdout: {stdout}\nstderr: {stderr}")
+            if return_code != expected_return_code:
+                raise RuntimeError(f"Expected {expected_return_code} but returned {return_code} while executing bash command '{cmd}'.\nstdout: {stdout}\nstderr: {stderr}")
         # end if, if
 
-        return_values = []
-        if is_get_return_code:
-            return_values.append(completed_process.returncode)
-        if is_get_stdout:
-            return_values.append(completed_process.stdout.decode("utf-8", errors="ignore"))
-        if is_get_stderr:
-            return_values.append(completed_process.stderr.decode("utf-8", errors="ignore"))
-
-        if len(return_values) == 0:
-            return None
-        elif len(return_values) == 1:
-            return return_values[0]
-        else:
-            return return_values
+        return cls.RunResult(return_code, stdout, stderr)

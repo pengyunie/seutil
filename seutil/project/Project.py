@@ -133,14 +133,13 @@ class Project:
         checkout_dir.mkdir(parents=True, exist_ok=True)
         if self.checkout_dir is None:
             # Clone, if not done so
-            self.logger.info(self.logger_prefix + "Cloning to {}".format(checkout_dir))
+            self.logger.info(self.logger_prefix + f"Cloning to {checkout_dir}")
             with IOUtils.cd(checkout_dir):
-                cmd_clone = "git clone {} .".format(self.url)
-                BashUtils.run(cmd_clone)
+                BashUtils.run(f"git clone {self.url} .", expected_return_code=0)
             # end with
         else:
             # Move, if has already cloned version
-            self.logger.info(self.logger_prefix + "Already cloned to {}, moving to {}".format(self.checkout_dir, checkout_dir))
+            self.logger.info(self.logger_prefix + f"Already cloned to {self.checkout_dir}, moving to {checkout_dir}")
             shutil.move(str(self.checkout_dir), str(checkout_dir))
         # end if
 
@@ -167,10 +166,10 @@ class Project:
         """
         self.require_cloned()
 
-        self.logger.info(self.logger_prefix + "Updating to latest version of branch {}".format(self.default_branch))
+        self.logger.info(self.logger_prefix + f"Updating to latest version of branch {self.default_branch}")
         with IOUtils.cd(self.checkout_dir):
             self.checkout(self.default_branch, True)
-            BashUtils.run("git pull")
+            BashUtils.run("git pull", expected_return_code=0)
             self.checkout(self.default_branch, True)
         # end with
         return
@@ -198,9 +197,8 @@ class Project:
         self.require_cloned()
 
         self.logger.info(self.logger_prefix + "Checking-out to {}".format(revision))
-        cmd_checkout = "git checkout {} {}".format("-f" if is_forced else "", revision)
         with IOUtils.cd(self.checkout_dir):
-            BashUtils.run(cmd_checkout)
+            BashUtils.run(f"git checkout {'-f' if is_forced else ''} {revision}", expected_return_code=0)
         # end with
         return
 
@@ -212,9 +210,8 @@ class Project:
         self.require_cloned()
 
         self.logger.info(self.logger_prefix + "Cleaning")
-        cmd_checkout = "git clean -ffdx"
         with IOUtils.cd(self.checkout_dir):
-            BashUtils.run(cmd_checkout)
+            BashUtils.run("git clean -ffdx", expected_return_code=0)
         # end with
         return
 
@@ -227,9 +224,8 @@ class Project:
         """
         self.require_cloned()
 
-        cmd_get_current_revision = "git log --pretty='%H' -1"
         with IOUtils.cd(self.checkout_dir):
-            revision = BashUtils.run(cmd_get_current_revision).strip()
+            revision = BashUtils.run("git log --pretty='%H' -1", expected_return_code=0).stdout.strip()
         # end with
         return revision
 
@@ -245,10 +241,9 @@ class Project:
         """
         self.require_cloned()
 
-        cmd_get_revisions = "git log --pretty='%H'"
         with IOUtils.cd(self.checkout_dir):
             # Revisions in chronological order
-            all_revisions = BashUtils.run(cmd_get_revisions).split("\n")[:-1]
+            all_revisions = BashUtils.run("git log --pretty='%H'", expected_return_code=0).stdout.split("\n")[:-1]
             all_revisions.reverse()
         # end with
         self.logger.info(self.logger_prefix + "All revisions count: {}".format(len(all_revisions)))
