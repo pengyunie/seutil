@@ -12,7 +12,7 @@ class Macros:
 
     if os.getenv("HOME") is not None:
         HOME_DIR: Path = Path.home()
-        CONFIG_FILE: Path = HOME_DIR / ".pyutil"
+        CONFIG_FILE: Path = HOME_DIR / ".seutil"
     else:
         CONFIG_FILE: Path = DEFAULT_CONFIG_FILE
     # end if
