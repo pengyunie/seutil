@@ -23,6 +23,8 @@ class GitHubUtils:
         DEFAULT_ACCESS_TOKEN = _config.get_config("github_access_token")
         DEFAULT_GITHUB_OBJECT = Github(DEFAULT_ACCESS_TOKEN, per_page=100)
     except:
+        DEFAULT_ACCESS_TOKEN = None
+        DEFAULT_GITHUB_OBJECT = None
         logger.warning("Fail to get github_access_token from config file.  Using GitHubUtils APIs will require compulsory input access_token")
     # end try
 
