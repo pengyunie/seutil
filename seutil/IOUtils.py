@@ -12,6 +12,8 @@ import subprocess
 import typing
 import yaml
 
+from .BashUtils import BashUtils
+
 
 class IOUtils:
     """
@@ -107,6 +109,32 @@ class IOUtils:
                 return
             else:
                 raise FileNotFoundError("Trying to remove non-exist directory {}".format(path))
+            # end if
+        # end if
+        return
+
+    @classmethod
+    def rm(cls, path: Path,
+        ignore_non_exist: bool = True,
+        force: bool = True,
+    ):
+        """
+        Removes the file/dir.
+        :param path: the path to the file/dir to remove.
+        :param ignore_non_exist: ignores error if the file/dir does not exist.
+        :param force: force remove the file even it's protected / dir even it's non-empty.
+        """
+        if path.exists():
+            if force:
+                BashUtils.run(f"rm -rf {path}")
+            else:
+                BashUtils.run(f"rm -r {path}")
+            # end if
+        else:
+            if ignore_non_exist:
+                return
+            else:
+                raise FileNotFoundError("Trying to remove non-exist file/dir {}".format(path))
             # end if
         # end if
         return
