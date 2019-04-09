@@ -25,7 +25,7 @@ class GitHubUtils:
     except:
         DEFAULT_ACCESS_TOKEN = None
         DEFAULT_GITHUB_OBJECT = None
-        logger.warning("Fail to get github_access_token from config file.  Using GitHubUtils APIs will require compulsory input access_token")
+        logger.info("Fail to get github_access_token from config file.  Using GitHubUtils APIs will require compulsory input access_token")
     # end try
 
     @classmethod
