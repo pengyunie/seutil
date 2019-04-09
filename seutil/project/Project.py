@@ -135,7 +135,7 @@ class Project:
             # Clone, if not done so
             self.logger.info(self.logger_prefix + f"Cloning to {checkout_dir}")
             with IOUtils.cd(checkout_dir):
-                BashUtils.run(f"git clone {self.url} .", expected_return_code=0)
+                BashUtils.run(f"git clone {self.url} .")
             # end with
         else:
             # Move, if has already cloned version
@@ -169,7 +169,7 @@ class Project:
         self.logger.info(self.logger_prefix + f"Updating to latest version of branch {self.default_branch}")
         with IOUtils.cd(self.checkout_dir):
             self.checkout(self.default_branch, True)
-            BashUtils.run("git pull", expected_return_code=0)
+            BashUtils.run("git fetch", expected_return_code=0)
             self.checkout(self.default_branch, True)
         # end with
         return
