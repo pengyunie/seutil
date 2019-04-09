@@ -1,6 +1,7 @@
 from typing import *
 
 from collections import defaultdict
+from enum import Enum
 import inspect
 import json
 import os
@@ -303,6 +304,9 @@ class IOUtils:
                 field_values[f] = cls.dejsonfy(data.get(f), t)
             # end for
             return clz(**field_values)
+        elif clz is not None and inspect.isclass(clz) and issubclass(clz, Enum):
+            # Enum
+            return clz(data)
         elif isinstance(data, dict):
             # dict
             return {k: cls.dejsonfy(v, clz) for k, v in data.items()}
