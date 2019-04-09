@@ -1,4 +1,5 @@
 import subprocess
+from pathlib import Path
 
 from typing import *
 
@@ -34,3 +35,11 @@ class BashUtils:
         # end if, if
 
         return cls.RunResult(return_code, stdout, stderr)
+
+    @classmethod
+    def get_temp_dir(cls) -> Path:
+        return Path(cls.run("mktemp -d", expected_return_code=0).stdout)
+
+    @classmethod
+    def get_temp_file(cls) -> Path:
+        return Path(cls.run("mktemp", expected_return_code=0).stdout)

@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import pickle as pkl
 import json
@@ -80,23 +81,29 @@ class IOUtils:
         os.mkdir(dirname, mode)
         return
 
-    # Deprecated
-    # Use shutil.rmtree() instead
     @classmethod
-    def rm_dir(cls, dirname,
-               is_ok_if_not_exists: bool = True):
+    def rm_dir(cls, path: Path,
+        ignore_non_exist: bool = True,
+        force: bool = True,
+    ):
         """
         Removes the directory.
-        :param dirname: the name of the directory.
-        :param is_ok_if_not_exists: if it is OK if the directory does not exist.
+        :param path: the name of the directory.
+        :param ignore_non_exist: ignores error if the directory does not exist.
+        :param force: force remove the directory even it's non-empty.
         """
-        if cls.has_dir(dirname):
-            os.rmdir(dirname)
+        if path.is_dir():
+            if force:
+                shutil.rmtree(path, ignore_errors=True)
+            else:
+                path.rmdir()
+            # end if
         else:
-            if is_ok_if_not_exists:
+            if ignore_non_exist:
                 return
             else:
-                raise FileNotFoundError("Trying to remove non-exist directory {}".format(dirname))
+                raise FileNotFoundError("Trying to remove non-exist directory {}".format(path))
+            # end if
         # end if
         return
 
