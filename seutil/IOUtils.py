@@ -240,7 +240,7 @@ class IOUtils:
         """
         if obj is None:
             return None
-        elif isinstance(obj, (int, float, str)):
+        elif isinstance(obj, (int, float, str, bool)):
             # primitive types
             return obj
         elif isinstance(obj, (list, set)):  # TODO: support set also in dejsonfy
@@ -249,6 +249,9 @@ class IOUtils:
         elif isinstance(obj, dict):
             # dict
             return {k: cls.jsonfy(v) for k, v in obj.items()}
+        elif isinstance(obj, Enum):
+            # Enum
+            return obj.value
         elif hasattr(obj, cls.JSONFY_FUNC_NAME):
             # with jsonfy function
             return getattr(obj, cls.JSONFY_FUNC_NAME)()
