@@ -1,12 +1,16 @@
+from typing import *
+
+from collections import defaultdict
+import inspect
+import json
 import os
+from pathlib import Path
+import pickle as pkl
+import recordclass
 import shutil
 import subprocess
-import pickle as pkl
-import json
+import typing
 import yaml
-from collections import defaultdict
-from pathlib import Path
-from typing import *
 
 
 class IOUtils:
@@ -207,17 +211,26 @@ class IOUtils:
         """
         if obj is None:
             return None
-        elif isinstance(obj, int) or isinstance(obj, float) or isinstance(obj, str):
+        elif isinstance(obj, (int, float, str)):
+            # primitive types
             return obj
-        elif isinstance(obj, list) or isinstance(obj, set):  # TODO: support set also in dejsonfy
+        elif isinstance(obj, (list, set)):  # TODO: support set also in dejsonfy
+            # array
             return [cls.jsonfy(item) for item in obj]
         elif isinstance(obj, dict):
+            # dict
             return {k: cls.jsonfy(v) for k, v in obj.items()}
         elif hasattr(obj, cls.JSONFY_FUNC_NAME):
+            # with jsonfy function
             return getattr(obj, cls.JSONFY_FUNC_NAME)()
         elif hasattr(obj, cls.JSONFY_ATTR_FIELD_NAME):
+            # with jsonfy_attr annotations
             return {attr: cls.jsonfy(getattr(obj, attr)) for attr in getattr(obj, cls.JSONFY_ATTR_FIELD_NAME).keys()}
+        elif isinstance(obj, recordclass.memoryslots):
+            # RecordClass
+            return {k: cls.jsonfy(v) for k, v in obj.__dict__.items()}
         else:
+            # Last effort: toString
             return repr(obj)
 
     @classmethod
@@ -236,19 +249,35 @@ class IOUtils:
         # end if
 
         if data is None:
+            # None value
             return None
+        elif clz is not None and isinstance(clz, typing._GenericAlias) and clz.__dict__["_name"] == "List":
+            # List[XXX]
+            return [cls.dejsonfy(item, clz.__dict__["__args__"]) for item in data]
         elif isinstance(data, list):
+            # array
             return [cls.dejsonfy(item, clz) for item in data]
         elif clz is not None and hasattr(clz, cls.DEJSONFY_FUNC_NAME):
+            # with dejsonfy function
             return clz.dejsonfy(data)
         elif clz is not None and hasattr(clz, cls.JSONFY_ATTR_FIELD_NAME):
+            # with jsonfy_attr annotations
             obj = clz()
             for attr, attr_clz in getattr(clz, cls.JSONFY_ATTR_FIELD_NAME).items():
                 if attr in data:
                     setattr(obj, attr, cls.dejsonfy(data[attr], attr_clz))
             # end for, if
             return obj
+        elif clz is not None and inspect.isclass(clz) and issubclass(clz, recordclass.memoryslots):
+            # RecordClass
+            field_values = dict()
+            for f, t in clz.__annotations__.items():
+                field_values[f] = cls.dejsonfy(data.get(f), t)
+            # end for
+            return clz(**field_values)
         elif isinstance(data, dict):
+            # dict
             return {k: cls.dejsonfy(v, clz) for k, v in data.items()}
         else:
+            # primitive types / unresolvable things
             return data
