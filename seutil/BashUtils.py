@@ -38,8 +38,8 @@ class BashUtils:
 
     @classmethod
     def get_temp_dir(cls) -> Path:
-        return Path(cls.run("mktemp -d", expected_return_code=0).stdout)
+        return Path(cls.run("mktemp -d", expected_return_code=0).stdout.strip())
 
     @classmethod
     def get_temp_file(cls) -> Path:
-        return Path(cls.run("mktemp", expected_return_code=0).stdout)
+        return Path(cls.run("mktemp", expected_return_code=0).stdout.strip())
