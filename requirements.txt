@@ -3,3 +3,4 @@ PyYAML>=3.12
 unidiff>=0.5.5
 PyGitHub>=1.40
 recordclass>=0.9
+typing_inspect>=0.4.0

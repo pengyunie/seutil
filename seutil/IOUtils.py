@@ -11,6 +11,7 @@ import recordclass
 import shutil
 import subprocess
 import typing
+import typing_inspect
 import yaml
 
 from .BashUtils import BashUtils
@@ -283,7 +284,7 @@ class IOUtils:
         if data is None:
             # None value
             return None
-        elif clz is not None and isinstance(clz, typing._GenericAlias) and clz.__dict__["_name"] == "List":
+        elif clz is not None and typing_inspect.get_origin(clz) == list:
             # List[XXX]
             return [cls.dejsonfy(item, clz.__dict__["__args__"]) for item in data]
         elif isinstance(data, list):
