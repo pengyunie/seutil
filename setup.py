@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="seutil",
-    version="0.3.8",
+    version="0.3.9",
     author="Pengyu Nie",
     author_email="prodigy.sov@gmail.com",
     description="Python utilities for SE research",
