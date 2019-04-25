@@ -151,7 +151,7 @@ class IOUtils:
     })
     # pickle (python serialized object)
     IO_FORMATS["pkl"]["mode"] = "b"
-    IO_FORMATS["pkl"]["dumpf"] = lambda obj, f: pkl.dump(obj, f)
+    IO_FORMATS["pkl"]["dumpf"] = lambda obj, f: pkl.dump(obj, f, protocol=pkl.HIGHEST_PROTOCOL)
     IO_FORMATS["pkl"]["loadf"] = lambda f: pkl.load(f)
     # json (human readable version)
     IO_FORMATS["json"]["dumpf"] = lambda obj, f: json.dump(obj, f, indent=4, sort_keys=True)
