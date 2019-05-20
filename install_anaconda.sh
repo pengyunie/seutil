@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ANACONDA_URL='https://repo.anaconda.com/archive/Anaconda3-2018.12-Linux-x86_64.sh'
+ANACONDA_URL='https://repo.anaconda.com/archive/Anaconda3-2019.03-Linux-x86_64.sh'
 
 function install_anaconda() {
         local install_dir="$1"; shift; : ${install_dir:=$HOME/opt/anaconda3}
