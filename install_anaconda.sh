@@ -1,8 +1,20 @@
 #!/bin/bash
 
 ANACONDA_URL='https://repo.anaconda.com/archive/Anaconda3-2019.03-Linux-x86_64.sh'
+EXPECTED_PYTHON_VERSION="3.7.3"
 
 function install_anaconda() {
+        # If conda already exists, update its python version instead of install
+        if command -v conda >/dev/null 2>&1; then
+                echo "Found existing conda executable at $(which conda). Will update its python version to $EXPECTED_PYTHON_VERSION"
+                conda install python~="$EXPECTED_PYTHON_VERSION"
+                if [[ $? -ne 0 ]]; then
+                        echo "Update python version of existing conda environment failed!"
+                        exit 1
+                fi
+                return
+        fi
+        
         local install_dir="$1"; shift; : ${install_dir:=$HOME/opt/anaconda3}
 
         if [[ -d ${install_dir} ]]; then
