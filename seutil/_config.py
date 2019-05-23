@@ -22,7 +22,7 @@ def get_config(key: str,
                is_use_default: bool = True) -> any:
     try:
         with open(str(config_file), "r") as f:
-            configs = yaml.load(f)
+            configs = yaml.load(f, Loader=yaml.FullLoader)
             return configs[key]
         # end with
     except (KeyError, FileNotFoundError) as e:
