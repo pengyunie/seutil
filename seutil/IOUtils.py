@@ -155,7 +155,7 @@ class IOUtils:
     IO_FORMATS["pkl"]["loadf"] = lambda f: pkl.load(f)
     # json (human readable version)
     IO_FORMATS["json"]["dumpf"] = lambda obj, f: json.dump(obj, f, indent=4, sort_keys=True)
-    IO_FORMATS["json"]["loadf"] = lambda f: yaml.load(f)  # allows some format errors (e.g., trailing commas)
+    IO_FORMATS["json"]["loadf"] = lambda f: yaml.load(f, Loader=yaml.FullLoader)  # allows some format errors (e.g., trailing commas)
     # json (human readable version)
     IO_FORMATS["json-nosort"]["dumpf"] = lambda obj, f: json.dump(obj, f, indent=4)
     IO_FORMATS["json-nosort"]["loadf"] = lambda f: yaml.load(f)  # allows some format errors (e.g., trailing commas)

@@ -31,7 +31,7 @@ class test_IOUtils(unittest.TestCase):
         self.assertEqual(42, IOUtils.jsonfy(42))
         self.assertEqual(1.111, IOUtils.jsonfy(1.111))
         self.assertEqual([1, 2.0, "ccc"], IOUtils.jsonfy([1, 2.0, "ccc"]))
-        self.assertEqual([1, 2.0, "ccc"], IOUtils.jsonfy({1, 2.0, "ccc"}))
+        self.assertEqual({1, 2.0, "ccc"}, set(IOUtils.jsonfy({1, 2.0, "ccc"})))
         self.assertEqual({"f1": 1, "f2": 2.0, "f3": "ccc"}, IOUtils.jsonfy({"f1": 1, "f2": 2.0, "f3": "ccc"}))
         return
 
