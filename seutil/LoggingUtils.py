@@ -81,3 +81,8 @@ class LoggingUtils:
             # end for
         # end for
         return
+
+    @classmethod
+    def log_and_raise(cls, logger: logging.Logger, msg: str, error_type, level: int = ERROR):
+        logger.log(level, msg)
+        raise error_type(msg)

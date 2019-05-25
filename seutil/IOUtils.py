@@ -10,7 +10,6 @@ import pickle as pkl
 import recordclass
 import shutil
 import subprocess
-import typing
 import typing_inspect
 import yaml
 
@@ -144,32 +143,60 @@ class IOUtils:
     # ----------
     # File operations
 
-    IO_FORMATS = defaultdict(lambda: {
+    class Format(Enum):
+        txt = 0,
+        pkl = 1,
+        jsonPretty = 2,
+        jsonNoSort = 3,
+        json = 4,
+
+        @classmethod
+        def from_str(cls, string: str) -> "IOUtils.Format":
+            return {
+                "pkl": IOUtils.Format.pkl,
+                "json": IOUtils.Format.jsonPretty,
+                "json-nosort": IOUtils.Format.jsonNoSort,
+                "json_nosort": IOUtils.Format.jsonNoSort,
+                "json-min": IOUtils.Format.json,
+                "json_min": IOUtils.Format.json,
+            }.get(string, IOUtils.Format.txt)
+
+        def get_extension(self) -> str:
+            return {
+                IOUtils.Format.txt: "txt",
+                IOUtils.Format.pkl: "pkl",
+                IOUtils.Format.jsonPretty: "json",
+                IOUtils.Format.jsonNoSort: "json",
+                IOUtils.Format.json: "json",
+            }.get(self, "unknown")
+
+    IO_FORMATS: Dict[Format, Dict] = defaultdict(lambda: {
         "mode": "t",
         "dumpf": (lambda obj, f: f.write(obj)),
         "loadf": (lambda f: f.read())
     })
     # pickle (python serialized object)
-    IO_FORMATS["pkl"]["mode"] = "b"
-    IO_FORMATS["pkl"]["dumpf"] = lambda obj, f: pkl.dump(obj, f, protocol=pkl.HIGHEST_PROTOCOL)
-    IO_FORMATS["pkl"]["loadf"] = lambda f: pkl.load(f)
+    IO_FORMATS[Format.pkl]["mode"] = "b"
+    IO_FORMATS[Format.pkl]["dumpf"] = lambda obj, f: pkl.dump(obj, f, protocol=pkl.HIGHEST_PROTOCOL)
+    IO_FORMATS[Format.pkl]["loadf"] = lambda f: pkl.load(f)
     # json (human readable version)
-    IO_FORMATS["json"]["dumpf"] = lambda obj, f: json.dump(obj, f, indent=4, sort_keys=True)
-    IO_FORMATS["json"]["loadf"] = lambda f: yaml.load(f, Loader=yaml.FullLoader)  # allows some format errors (e.g., trailing commas)
+    IO_FORMATS[Format.jsonPretty]["dumpf"] = lambda obj, f: json.dump(obj, f, indent=4, sort_keys=True)
+    IO_FORMATS[Format.jsonPretty]["loadf"] = lambda f: yaml.load(f, Loader=yaml.FullLoader)  # allows some format errors (e.g., trailing commas)
     # json (human readable version)
-    IO_FORMATS["json-nosort"]["dumpf"] = lambda obj, f: json.dump(obj, f, indent=4)
-    IO_FORMATS["json-nosort"]["loadf"] = lambda f: yaml.load(f, Loader=yaml.FullLoader)  # allows some format errors (e.g., trailing commas)
+    IO_FORMATS[Format.jsonNoSort]["dumpf"] = lambda obj, f: json.dump(obj, f, indent=4)
+    IO_FORMATS[Format.jsonNoSort]["loadf"] = lambda f: yaml.load(f, Loader=yaml.FullLoader)  # allows some format errors (e.g., trailing commas)
     # json_min (minimize size, operation with code only)
-    IO_FORMATS["json_min"]["dumpf"] = lambda obj, f: json.dump(obj, f, sort_keys=True)
-    IO_FORMATS["json_min"]["loadf"] = lambda f: json.load(f)
+    IO_FORMATS[Format.json]["dumpf"] = lambda obj, f: json.dump(obj, f, sort_keys=True)
+    IO_FORMATS[Format.json]["loadf"] = lambda f: json.load(f)
 
     @classmethod
-    def dump(cls, file_path: Union[str, Path], obj: object, fmt: str = "json"):
+    def dump(cls, file_path: Union[str, Path], obj: object, fmt: Union[Format, str] = Format.jsonPretty):
         if isinstance(file_path, str):
             file_path = Path(file_path)
         # end if
         file_path.touch(exist_ok=True)
 
+        if isinstance(fmt, str):  fmt = cls.Format.from_str(fmt)
         conf = cls.IO_FORMATS[fmt]
 
         with open(file_path, "w" + conf["mode"]) as f:
@@ -178,11 +205,12 @@ class IOUtils:
         return
 
     @classmethod
-    def load(cls, file_path: Union[str, Path], fmt: str = "json") -> Any:
+    def load(cls, file_path: Union[str, Path], fmt: Union[Format, str] = Format.jsonPretty) -> Any:
         if isinstance(file_path, str):
             file_path = Path(file_path)
         # end if
 
+        if isinstance(fmt, str):  fmt = cls.Format.from_str(fmt)
         conf = cls.IO_FORMATS[fmt]
 
         try:
