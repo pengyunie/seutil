@@ -46,9 +46,10 @@ class test_IOUtils(unittest.TestCase):
     ### Jsonfy & Dejsonfy X RecordClass
 
     class ExampleRecordClass(RecordClass):
-        field_str: str
-        field_int: int
-        field_list: List[int]
+        field_str: str = ""
+        field_int: int = 1
+        field_int_2: int = 2
+        field_list: List[int] = None
 
     def test_jsonfy_record_class(self):
         example_obj = test_IOUtils.ExampleRecordClass(field_str="aaa", field_int=42, field_list=[1,2])
@@ -59,8 +60,8 @@ class test_IOUtils(unittest.TestCase):
         return
 
     def test_dejsonfy_record_class(self):
-        example_obj = test_IOUtils.ExampleRecordClass(field_str="aaa", field_int=42, field_list=[1,2])
-        dejsonfied = IOUtils.dejsonfy({"field_str": "aaa", "field_int": 42, "field_list": [1, 2]}, test_IOUtils.ExampleRecordClass)
+        example_obj = test_IOUtils.ExampleRecordClass(field_str="aaa", field_int=42, field_int_2=66, field_list=[1,2])
+        dejsonfied = IOUtils.dejsonfy({"field_str": "aaa", "field_int": 42, "field_int_2": "66", "field_list": [1, 2]}, test_IOUtils.ExampleRecordClass)
         self.assertEqual(example_obj, dejsonfied)
         return
 

@@ -344,4 +344,8 @@ class IOUtils:
             return {k: cls.dejsonfy(v, clz) for k, v in data.items()}
         else:
             # primitive types / unresolvable things
+            if cls is not None:
+                try: return clz(data)
+                except: pass
+            # end if
             return data
