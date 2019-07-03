@@ -314,7 +314,7 @@ class IOUtils:
             return None
         elif clz is not None and typing_inspect.get_origin(clz) == list:
             # List[XXX]
-            return [cls.dejsonfy(item, clz.__dict__["__args__"]) for item in data]
+            return [cls.dejsonfy(item, clz.__args__[0]) for item in data]
         elif isinstance(data, list):
             # array
             return [cls.dejsonfy(item, clz) for item in data]
