@@ -287,7 +287,7 @@ class IOUtils:
         elif hasattr(obj, cls.JSONFY_ATTR_FIELD_NAME):
             # with jsonfy_attr annotations
             return {attr: cls.jsonfy(getattr(obj, attr)) for attr in getattr(obj, cls.JSONFY_ATTR_FIELD_NAME).keys()}
-        elif isinstance(obj, recordclass.memoryslots):
+        elif isinstance(obj, recordclass.mutabletuple):
             # RecordClass
             return {k: cls.jsonfy(v) for k, v in obj.__dict__.items()}
         else:
@@ -329,7 +329,7 @@ class IOUtils:
                     setattr(obj, attr, cls.dejsonfy(data[attr], attr_clz))
             # end for, if
             return obj
-        elif clz is not None and inspect.isclass(clz) and issubclass(clz, recordclass.memoryslots):
+        elif clz is not None and inspect.isclass(clz) and issubclass(clz, recordclass.mutabletuple):
             # RecordClass
             field_values = dict()
             for f, t in clz.__annotations__.items():
