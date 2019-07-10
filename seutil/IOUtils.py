@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import pickle as pkl
+import pydoc
 import recordclass
 import shutil
 import subprocess
@@ -306,7 +307,7 @@ class IOUtils:
            should have the name {@link IOUtils#JSONFY_ATTR_FIELD_NAME};
         """
         if isinstance(clz, str):
-            clz = globals()[clz]
+            clz = pydoc.locate(clz)
         # end if
 
         if data is None:
@@ -332,7 +333,7 @@ class IOUtils:
         elif clz is not None and inspect.isclass(clz) and issubclass(clz, recordclass.mutabletuple):
             # RecordClass
             field_values = dict()
-            for f, t in clz.__annotations__.items():
+            for f, t in get_type_hints(clz).items():
                 field_values[f] = cls.dejsonfy(data.get(f), t)
             # end for
             return clz(**field_values)
