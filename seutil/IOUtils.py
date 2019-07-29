@@ -334,7 +334,7 @@ class IOUtils:
             # RecordClass
             field_values = dict()
             for f, t in get_type_hints(clz).items():
-                field_values[f] = cls.dejsonfy(data.get(f), t)
+                if f in data:  field_values[f] = cls.dejsonfy(data.get(f), t)
             # end for
             return clz(**field_values)
         elif clz is not None and inspect.isclass(clz) and issubclass(clz, Enum):
