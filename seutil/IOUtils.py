@@ -273,7 +273,7 @@ class IOUtils:
         elif isinstance(obj, (int, float, str, bool)):
             # primitive types
             return obj
-        elif isinstance(obj, (list, set)):  # TODO: support set also in dejsonfy
+        elif isinstance(obj, (list, set, tuple)):  # TODO: support set also in dejsonfy
             # array
             return [cls.jsonfy(item) for item in obj]
         elif isinstance(obj, dict):
