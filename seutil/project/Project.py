@@ -43,7 +43,7 @@ class Project:
         jsonfied = dict()
         jsonfied["full_name"] = self.full_name
         jsonfied["url"] = self.url
-        for e, v in self.data:
+        for e, v in self.data.items():
             if e in ["full_name", "url"]:
                 continue
             else:
