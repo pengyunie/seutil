@@ -273,7 +273,7 @@ class IOUtils:
         elif isinstance(obj, (int, float, str, bool)):
             # primitive types
             return obj
-        elif isinstance(obj, (list, set, tuple)):  # TODO: support set also in dejsonfy
+        elif isinstance(obj, (list, set, tuple)):
             # array
             return [cls.jsonfy(item) for item in obj]
         elif isinstance(obj, dict):
@@ -316,6 +316,12 @@ class IOUtils:
         elif clz is not None and typing_inspect.get_origin(clz) == list:
             # List[XXX]
             return [cls.dejsonfy(item, clz.__args__[0]) for item in data]
+        elif clz is not None and typing_inspect.get_origin(clz) == tuple:
+            # Tuple[XXX]
+            return tuple([cls.dejsonfy(item, clz.__args__[0]) for item in data])
+        elif clz is not None and typing_inspect.get_origin(clz) == set:
+            # Set[XXX]
+            return set([cls.dejsonfy(item, clz.__args__[0]) for item in data])
         elif isinstance(data, list):
             # array
             return [cls.dejsonfy(item, clz) for item in data]

@@ -43,6 +43,12 @@ class test_IOUtils(unittest.TestCase):
         self.assertEqual({"f1": 1, "f2": 2.0, "f3": "ccc"}, IOUtils.dejsonfy({"f1": 1, "f2": 2.0, "f3": "ccc"}))
         return
 
+    def test_dejsonfy_seqs(self):
+        self.assertEqual([1, 2, 3], IOUtils.dejsonfy([1, 2, 3], List[int]))
+        self.assertEqual((1, 2, 3), IOUtils.dejsonfy([1, 2, 3], Tuple[int]))
+        self.assertEqual({1, 2, 3}, IOUtils.dejsonfy([1, 2, 3], Set[int]))
+        return
+
     ### Jsonfy & Dejsonfy X RecordClass
 
     class ExampleSimpleRecordClass(RecordClass):
