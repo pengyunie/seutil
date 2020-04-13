@@ -1,7 +1,7 @@
 #!/bin/bash
 
-ANACONDA_URL='https://repo.anaconda.com/archive/Anaconda3-2019.03-Linux-x86_64.sh'
-EXPECTED_PYTHON_VERSION="3.7.3"
+ANACONDA_URL='https://repo.anaconda.com/archive/Anaconda3-2020.02-Linux-x86_64.sh'
+EXPECTED_PYTHON_VERSION="3.7.7"
 
 function install_anaconda() {
         # If conda already exists, update its python version instead of install
