@@ -4,6 +4,7 @@ from collections import defaultdict
 from enum import Enum
 import inspect
 import json
+import ijson
 import os
 from pathlib import Path
 import pickle as pkl
@@ -223,6 +224,28 @@ class IOUtils:
         # end try
 
         return obj
+
+    @classmethod
+    def load_json_stream(cls, file_path: Union[str, Path], fmt: Union[Format, str] = Format.jsonPretty):
+        """
+        Reads large json file containing a list of data iteratively. Returns a generator function.
+        """
+        if isinstance(file_path, str):
+            file_path = Path(file_path)
+        # end if
+
+        if isinstance(fmt, str):  fmt = cls.Format.from_str(fmt)
+        conf = cls.IO_FORMATS[fmt]
+
+        try:
+            with open(file_path, "r" + conf["mode"]) as f:
+                objects = ijson.items(f, "item")
+                for obj in objects:
+                    yield obj
+            # end with
+        except FileNotFoundError as e:
+            raise FileNotFoundError(str(e) + " at {}".format(Path.cwd()))
+        # end try
 
     @classmethod
     def update_json(cls, file_name, data):
