@@ -1,14 +1,35 @@
-from enum import Enum
+import shutil
 import unittest
+import tempfile
+from enum import Enum
 from pathlib import Path
-from recordclass import RecordClass
 from typing import *
+
+from recordclass import RecordClass
 
 from seutil import IOUtils
 from .TestSupport import TestSupport
 
 
 class test_IOUtils(unittest.TestCase):
+
+    def load_plain(self, path: Path) -> str:
+        """
+        Loads a file's content in plain text using standard library only. Utility method.
+        """
+        with open(path, "r") as f:
+            return f.read()
+
+    def rm(self, *paths: Path):
+        """
+        Removes one or more files or directories using standard library only. Utility method.
+        """
+        for path in paths:
+            if path.exists():
+                if path.is_dir():
+                    shutil.rmtree(path)
+                else:
+                    path.unlink()
 
     def test_cd(self):
         with TestSupport.get_playground_path():
@@ -94,6 +115,42 @@ class test_IOUtils(unittest.TestCase):
         dejsonfied = IOUtils.dejsonfy(3, test_IOUtils.ExampleEnum)
         self.assertEqual(example_obj, dejsonfied)
         return
+
+    def test_format_json_list(self):
+        """
+        Tests for IOUtils.Format.jsonList
+        """
+        obj = ["abcde", [1, 2, 3], {"abc": "def"}]
+        path = Path(tempfile.mktemp())
+        expected = '"abcde"\n[1, 2, 3]\n{"abc": "def"}\n'
+
+        # Test dump
+        IOUtils.dump(path, obj, IOUtils.Format.jsonList)
+        self.assertEqual(expected, self.load_plain(path))
+
+        # Test load
+        loaded = IOUtils.load(path, IOUtils.Format.jsonList)
+        self.assertEqual(obj, loaded)
+
+        self.rm(path)
+
+    def test_format_txt_list(self):
+        """
+        Tests for IOUtils.Format.txtList
+        """
+        obj = ["abcde", "12345", "x y z"]
+        path = Path(tempfile.mktemp())
+        expected = "abcde\n12345\nx y z\n"
+
+        # Test dump
+        IOUtils.dump(path, obj, IOUtils.Format.txtList)
+        self.assertEqual(expected, self.load_plain(path))
+
+        # Test load
+        loaded = IOUtils.load(path, IOUtils.Format.txtList)
+        self.assertEqual(obj, loaded)
+
+        self.rm(path)
 
 
 if __name__ == '__main__':

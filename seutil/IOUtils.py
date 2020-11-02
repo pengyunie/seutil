@@ -145,11 +145,13 @@ class IOUtils:
     # File operations
 
     class Format(Enum):
-        txt = 0,
-        pkl = 1,
-        jsonPretty = 2,
-        jsonNoSort = 3,
-        json = 4,
+        txt = 0,  # Plain text format
+        pkl = 1,  # Pickle format
+        jsonPretty = 2,  # Json format, with pretty-printing
+        jsonNoSort = 3,  # Json format, with pretty-printing, without sorting the keys in dictionary
+        json = 4,  # Json format, without pretty-printing (eveything on one line)
+        jsonList = 5,  # Json format, assuming a list structure and put each item on one line
+        txtList = 6,  # Plain text format, dump/load as a list where each line is an element
 
         @classmethod
         def from_str(cls, string: str) -> "IOUtils.Format":
@@ -169,6 +171,8 @@ class IOUtils:
                 IOUtils.Format.jsonPretty: "json",
                 IOUtils.Format.jsonNoSort: "json",
                 IOUtils.Format.json: "json",
+                IOUtils.Format.jsonList: "jsonl",
+                IOUtils.Format.txtList: "txt",
             }.get(self, "unknown")
 
     IO_FORMATS: Dict[Format, Dict] = defaultdict(lambda: {
@@ -176,19 +180,46 @@ class IOUtils:
         "dumpf": (lambda obj, f: f.write(obj)),
         "loadf": (lambda f: f.read())
     })
-    # pickle (python serialized object)
+
     IO_FORMATS[Format.pkl]["mode"] = "b"
     IO_FORMATS[Format.pkl]["dumpf"] = lambda obj, f: pkl.dump(obj, f, protocol=pkl.HIGHEST_PROTOCOL)
     IO_FORMATS[Format.pkl]["loadf"] = lambda f: pkl.load(f)
-    # json (human readable version)
+
     IO_FORMATS[Format.jsonPretty]["dumpf"] = lambda obj, f: json.dump(obj, f, indent=4, sort_keys=True)
     IO_FORMATS[Format.jsonPretty]["loadf"] = lambda f: yaml.load(f, Loader=yaml.FullLoader)  # allows some format errors (e.g., trailing commas)
-    # json (human readable version)
+
     IO_FORMATS[Format.jsonNoSort]["dumpf"] = lambda obj, f: json.dump(obj, f, indent=4)
     IO_FORMATS[Format.jsonNoSort]["loadf"] = lambda f: yaml.load(f, Loader=yaml.FullLoader)  # allows some format errors (e.g., trailing commas)
-    # json_min (minimize size, operation with code only)
+
     IO_FORMATS[Format.json]["dumpf"] = lambda obj, f: json.dump(obj, f, sort_keys=True)
     IO_FORMATS[Format.json]["loadf"] = lambda f: json.load(f)
+
+    @classmethod
+    def dumpf_json_list(cls, obj, f):
+        for item in obj:
+            f.write(json.dumps(item) + "\n")
+
+    @classmethod
+    def loadf_json_list(cls, f) -> List:
+        obj = []
+        for line in f.readlines():
+            obj.append(json.loads(line))
+        return obj
+
+    IO_FORMATS[Format.jsonList]["dumpf"] = lambda obj, f: IOUtils.dumpf_json_list(obj, f)
+    IO_FORMATS[Format.jsonList]["loadf"] = lambda f: IOUtils.loadf_json_list(f)
+
+    @classmethod
+    def dumpf_txt_list(cls, obj, f):
+        for item in obj:
+            f.write(str(item) + "\n")
+
+    @classmethod
+    def loadf_txt_list(cls, f) -> List:
+        return f.read().splitlines()
+
+    IO_FORMATS[Format.txtList]["dumpf"] = lambda obj, f: IOUtils.dumpf_txt_list(obj, f)
+    IO_FORMATS[Format.txtList]["loadf"] = lambda f: IOUtils.loadf_txt_list(f)
 
     @classmethod
     def dump(cls, file_path: Union[str, Path], obj: object, fmt: Union[Format, str] = Format.jsonPretty):
