@@ -5,19 +5,26 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="seutil",
-    version="0.5.0",
+    version="0.5.1",
     author="Pengyu Nie",
     author_email="prodigy.sov@gmail.com",
     description="Python utilities for SE research",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/prodigysov/seutil",
+    url="https://github.com/pengyunie/seutil",
     packages=setuptools.find_packages(exclude=["tests"]),
     classifiers=(
         "Programming Language :: Python :: 3.7",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: POSIX :: Linux",
     ),
-    install_requires=["numpy>=1.14.4", "PyYAML>=5.1", "PyGitHub>=1.40", "unidiff>=0.5.5", "recordclass>=0.11.1", "typing_inspect>=0.4.0"],
-    #data_files=[("config", ["pyutil_config.json"]),]
+    install_requires=[
+        "PyGitHub>=1.40",
+        "PyYAML>=5.1",
+        "ijson~=3.1.1",
+        "numpy>=1.14.4",
+        "recordclass>=0.11.1",
+        "typing_inspect>=0.4.0",
+        "unidiff>=0.5.5",
+    ],
 )
