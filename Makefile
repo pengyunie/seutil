@@ -11,7 +11,7 @@ install:
 	pip install .
 
 test:
-	python -m unittest
+	pytest
 
 dist: clean
 	python setup.py sdist bdist_wheel
