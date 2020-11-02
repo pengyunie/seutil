@@ -1,6 +1,7 @@
-numpy>=1.14.4
-PyYAML>=5.1
-unidiff>=0.5.5
 PyGitHub>=1.40
+PyYAML>=5.1
+ijson~=3.1.1
+numpy>=1.14.4
 recordclass>=0.11.1
 typing_inspect>=0.4.0
+unidiff>=0.5.5
