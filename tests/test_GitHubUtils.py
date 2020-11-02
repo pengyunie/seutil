@@ -8,6 +8,7 @@ from .TestSupport import TestSupport
 
 class test_GitHubUtils(unittest.TestCase):
 
+    @unittest.skip("Require GitHub token, which is not available on CI")
     def test_search_repos_with_username(self):
         test_user = "google"
         test_repos_1 = GitHubUtils.search_repos("user:{}".format(test_user), language="Java")
