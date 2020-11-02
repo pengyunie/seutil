@@ -223,16 +223,31 @@ class IOUtils:
     IO_FORMATS[Format.txtList]["loadf"] = lambda f: IOUtils.loadf_txt_list(f)
 
     @classmethod
-    def dump(cls, file_path: Union[str, Path], obj: object, fmt: Union[Format, str] = Format.jsonPretty):
+    def dump(
+            cls,
+            file_path: Union[str, Path],
+            obj: object,
+            fmt: Union[Format, str] = Format.jsonPretty,
+            append: bool = False,
+    ) -> None:
+        """
+        Saves an object to the file in the specified format.
+        By default, the format is json pretty-print, and the existing content in the file will be erased.
+        :param file_path: the file to save the object into.
+        :param obj: the object to save.
+        :param fmt: the format, one of IOUtils.Format.
+        :param append: if true, appends to the file instead of erasing existing content in the file.
+        """
         if isinstance(file_path, str):
             file_path = Path(file_path)
-        # end if
+
         file_path.touch(exist_ok=True)
 
         if isinstance(fmt, str):  fmt = cls.Format.from_str(fmt)
         conf = cls.IO_FORMATS[fmt]
 
-        with open(file_path, "w" + conf["mode"]) as f:
+        write_mode = "w" if not append else "a"
+        with open(file_path, write_mode + conf["mode"]) as f:
             conf["dumpf"](obj, f)
 
         return

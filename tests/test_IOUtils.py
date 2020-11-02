@@ -132,6 +132,10 @@ class test_IOUtils(unittest.TestCase):
         loaded = IOUtils.load(path, IOUtils.Format.jsonList)
         self.assertEqual(obj, loaded)
 
+        # Test append
+        IOUtils.dump(path, obj, IOUtils.Format.jsonList, append=True)
+        self.assertEqual(expected*2, self.load_plain(path))
+
         self.rm(path)
 
     def test_format_txt_list(self):
@@ -149,6 +153,10 @@ class test_IOUtils(unittest.TestCase):
         # Test load
         loaded = IOUtils.load(path, IOUtils.Format.txtList)
         self.assertEqual(obj, loaded)
+
+        # Test append
+        IOUtils.dump(path, obj, IOUtils.Format.txtList, append=True)
+        self.assertEqual(expected*2, self.load_plain(path))
 
         self.rm(path)
 
