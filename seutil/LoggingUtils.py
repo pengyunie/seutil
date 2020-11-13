@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import *
+from logging.handlers import RotatingFileHandler
 
 
 class LoggingUtils:
@@ -24,7 +24,7 @@ class LoggingUtils:
 
     @classmethod
     def get_handler_file(cls, filename, level=logging.DEBUG) -> logging.Handler:
-        handler = logging.FileHandler(filename)
+        handler = RotatingFileHandler(filename, maxBytes=10_000_000)
         handler.setLevel(level=level)
         handler.setFormatter(logging.Formatter(cls.logging_format_detail, style="{"))
         return handler
