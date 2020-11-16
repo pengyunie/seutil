@@ -13,11 +13,11 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/pengyunie/seutil",
     packages=setuptools.find_packages(exclude=["tests"]),
-    classifiers=(
+    classifiers=[
         "Programming Language :: Python :: 3.7",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: POSIX :: Linux",
-    ),
+    ],
     install_requires=[
         "PyGitHub>=1.40",
         "PyYAML>=5.1",
