@@ -153,6 +153,7 @@ class IOUtils:
         json = 4,  # Json format, without pretty-printing (eveything on one line)
         jsonList = 5,  # Json format, assuming a list structure and put each item on one line
         txtList = 6,  # Plain text format, dump/load as a list where each line is an element
+        yaml = 7,  # YAML format
 
         @classmethod
         def from_str(cls, string: str) -> "IOUtils.Format":
@@ -174,6 +175,7 @@ class IOUtils:
                 IOUtils.Format.json: "json",
                 IOUtils.Format.jsonList: "jsonl",
                 IOUtils.Format.txtList: "txt",
+                IOUtils.Format.yaml: "yml",
             }.get(self, "unknown")
 
     IO_FORMATS: Dict[Format, Dict] = defaultdict(lambda: {
@@ -194,6 +196,9 @@ class IOUtils:
 
     IO_FORMATS[Format.json]["dumpf"] = lambda obj, f: json.dump(obj, f, sort_keys=True)
     IO_FORMATS[Format.json]["loadf"] = lambda f: json.load(f)
+
+    IO_FORMATS[Format.yaml]["dumpf"] = lambda obj, f: yaml.dump(obj, f)
+    IO_FORMATS[Format.yaml]["loadf"] = lambda f: yaml.load(f, Loader=yaml.FullLoader)
 
     @classmethod
     def dumpf_json_list(cls, obj, f):

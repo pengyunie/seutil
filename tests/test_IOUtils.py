@@ -160,6 +160,36 @@ class test_IOUtils(unittest.TestCase):
 
         self.rm(path)
 
+    def test_format_yaml(self):
+        """
+        Tests for IOUtils.Format.yaml
+        """
+        objs = [
+            42.001,
+            "aaa",
+            [13, "24", 56.7],
+            {"name": "K", "job": "Y"},
+        ]
+        exp_strs = [
+            "42.001\n...\n",
+            "aaa\n...\n",
+            "- 13\n- '24'\n- 56.7\n",
+            "job: Y\nname: K\n",  # dictionary are forced to be sorted
+        ]
+
+        for obj, exp_str in zip(objs, exp_strs):
+            path = Path(tempfile.mktemp())
+
+            # Test dump
+            IOUtils.dump(path, obj, IOUtils.Format.yaml)
+            self.assertEqual(exp_str, self.load_plain(path))
+
+            # Test load
+            loaded = IOUtils.load(path, IOUtils.Format.yaml)
+            self.assertEqual(obj, loaded)
+
+            self.rm(path)
+
 
 if __name__ == '__main__':
     unittest.main()
