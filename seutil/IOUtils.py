@@ -91,9 +91,11 @@ class IOUtils:
         return
 
     @classmethod
-    def rm_dir(cls, path: Path,
-        ignore_non_exist: bool = True,
-        force: bool = True,
+    def rm_dir(
+            cls,
+            path: Path,
+            ignore_non_exist: bool = True,
+            force: bool = True,
     ):
         """
         Removes the directory.
@@ -117,9 +119,11 @@ class IOUtils:
         return
 
     @classmethod
-    def rm(cls, path: Path,
-        ignore_non_exist: bool = True,
-        force: bool = True,
+    def rm(
+            cls,
+            path: Path,
+            ignore_non_exist: bool = True,
+            force: bool = True,
     ):
         """
         Removes the file/dir.
@@ -127,20 +131,10 @@ class IOUtils:
         :param ignore_non_exist: ignores error if the file/dir does not exist.
         :param force: force remove the file even it's protected / dir even it's non-empty.
         """
-        if path.exists():
-            if force:
-                BashUtils.run(f"rm -rf {path}")
-            else:
-                BashUtils.run(f"rm -r {path}")
-            # end if
+        if path.is_dir():
+            cls.rm_dir(path, ignore_non_exist=ignore_non_exist, force=force)
         else:
-            if ignore_non_exist:
-                return
-            else:
-                raise FileNotFoundError("Trying to remove non-exist file/dir {}".format(path))
-            # end if
-        # end if
-        return
+            path.unlink(missing_ok=ignore_non_exist)
 
     # ----------
     # File operations
