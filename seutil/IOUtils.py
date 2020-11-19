@@ -4,7 +4,6 @@ from collections import defaultdict
 from enum import Enum
 import inspect
 import json
-import ijson
 import os
 from pathlib import Path
 import pickle as pkl
@@ -134,7 +133,11 @@ class IOUtils:
         if path.is_dir():
             cls.rm_dir(path, ignore_non_exist=ignore_non_exist, force=force)
         else:
-            path.unlink(missing_ok=ignore_non_exist)
+            if path.exists():
+                path.unlink()
+            else:
+                if not ignore_non_exist:
+                    raise IOError(f"{path} does not exist")
 
     # ----------
     # File operations
@@ -275,6 +278,7 @@ class IOUtils:
         """
         Reads large json file containing a list of data iteratively. Returns a generator function.
         """
+        import ijson
         if isinstance(file_path, str):
             file_path = Path(file_path)
         # end if
