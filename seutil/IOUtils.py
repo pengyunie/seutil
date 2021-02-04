@@ -390,7 +390,7 @@ class IOUtils:
             return [cls.dejsonfy(item, clz.__args__[0]) for item in data]
         elif clz is not None and typing_inspect.get_origin(clz) == tuple:
             # Tuple[XXX]
-            return tuple([cls.dejsonfy(item, clz.__args__[0]) for item in data])
+            return tuple([cls.dejsonfy(item, clz.__args__[min(i, len(clz.__args__)-1)]) for i, item in enumerate(data)])
         elif clz is not None and typing_inspect.get_origin(clz) == set:
             # Set[XXX]
             return set([cls.dejsonfy(item, clz.__args__[0]) for item in data])
