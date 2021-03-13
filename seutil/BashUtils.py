@@ -20,12 +20,14 @@ class BashUtils:
     def run(cls, cmd: str,
             expected_return_code: int = None,
             is_update_env: bool = False,
+            timeout: Optional[float] = None,
     ) -> RunResult:
         """
         Runs a Bash command and returns the stdout.
         :param cmd: the command to run.
         :param expected_return_code: if set to an int, will raise exception if the return code mismatch.
         :param is_update_env: if true, the environment in *this python process (os.environ)* will be updated upon the successful execution of cmd (i.e., returns 0), to reflect the changes to the enrionment variables cmd may make.  Note it can not change the environment of the process that invoked this python process.  It is useful because the updated environment will be used for later BashUtils.run executions.
+        :param timeout: if not None, kill the process after timeout seconds and raise TimeoutExpire exception.
         :return: the run result, which is a named tuple with field return_code, stdout, stderr.
         """
         # If update env is requested, append an additional command to the cmd
@@ -34,7 +36,7 @@ class BashUtils:
             cmd += f" && env > {tempfile_update_env}"
         # end if
 
-        completed_process = subprocess.run(["bash", "-c", cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        completed_process = subprocess.run(["bash", "-c", cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
         #completed_process = subprocess.run(cmd, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         return_code = completed_process.returncode
