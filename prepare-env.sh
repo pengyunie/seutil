@@ -34,6 +34,7 @@ function prepare_conda_env() {
 
         # Install libraries
         pip install -r requirements.txt
+        pip install -r requirements.dev.txt
 }
 
 
