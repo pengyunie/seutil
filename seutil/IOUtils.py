@@ -390,16 +390,16 @@ class IOUtils:
             return [cls.dejsonfy(item, clz.__args__[0]) for item in data]
         elif clz is not None and typing_inspect.get_origin(clz) == tuple:
             # Tuple[XXX]
-            return tuple([cls.dejsonfy(item, clz.__args__[0]) for item in data])
+            return tuple([cls.dejsonfy(item, clz.__args__[min(i, len(clz.__args__)-1)]) for i, item in enumerate(data)])
         elif clz is not None and typing_inspect.get_origin(clz) == set:
             # Set[XXX]
             return set([cls.dejsonfy(item, clz.__args__[0]) for item in data])
-        elif isinstance(data, list):
-            # array
-            return [cls.dejsonfy(item, clz) for item in data]
         elif clz is not None and hasattr(clz, cls.DEJSONFY_FUNC_NAME):
             # with dejsonfy function
             return clz.dejsonfy(data)
+        elif isinstance(data, list):
+            # array
+            return [cls.dejsonfy(item, clz) for item in data]
         elif clz is not None and hasattr(clz, cls.JSONFY_ATTR_FIELD_NAME):
             # with jsonfy_attr annotations
             obj = clz()

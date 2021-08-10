@@ -11,6 +11,7 @@ from .IOUtils import IOUtils
 from .LoggingUtils import LoggingUtils
 from .Stream import Stream
 from .TimeUtils import TimeUtils, TimeoutException
+from . import debug
 
 __all__ = [
     # Classes

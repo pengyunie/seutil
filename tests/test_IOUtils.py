@@ -66,7 +66,7 @@ class test_IOUtils(unittest.TestCase):
 
     def test_dejsonfy_seqs(self):
         self.assertEqual([1, 2, 3], IOUtils.dejsonfy([1, 2, 3], List[int]))
-        self.assertEqual((1, 2, 3), IOUtils.dejsonfy([1, 2, 3], Tuple[int]))
+        self.assertEqual((1, 2, 3), IOUtils.dejsonfy([1, 2, 3], Tuple[int, int, int]))
         self.assertEqual({1, 2, 3}, IOUtils.dejsonfy([1, 2, 3], Set[int]))
         return
 
