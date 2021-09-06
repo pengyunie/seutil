@@ -1,15 +1,24 @@
 # v1.0 Planned Features and Changes
 
-- `IOUtils`
+- IOUtils -> io
 
-  - Combine `load` with `jsonfy`, combine `dump` with `dejsonfy`
+  + Rename API rm_dir > rmdir
+  + Re-add API mkdir
   
-  - Support `jsonfy` numpy numbers directly
-  
-  - Add `loadl` and `dumpl` for jsonList and txtList format, which
-    support showing progress bar
+  ~ More powerful and easy-to-use load & dump functions
+    + support serialization (replacing the original jsonfy & dejsonfy)
+    + support xList formats together with others, and optional progress bar for them
     
-- `CliUtils`
+  - Serialization: support numpy array and pd.DataFrame
+    
+- debug
+
+  ~ Function to print debugging information any object with varying verbosity:
+    name, type, size, string representation
+    
+  ~ Function to shrink a complex data structure to a small size for debugging
+
+- CliUtils -> anyargparse
 
   - Option without values should not default to `1`, but default to
     `True` or user specified value
