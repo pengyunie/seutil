@@ -15,6 +15,11 @@ import recordclass
 import typing_inspect
 import yaml
 
+__all__ = [
+    "cd", "rmdir", "rm", "mkdir", "mktmp", "mktmp_dir",
+    "Fmt", "serialize", "deserialize", "load", "dump", "DeserializationError",
+]
+
 
 # ==========
 # private utility functions
@@ -32,10 +37,20 @@ def _is_obj_record_class(obj: Any) -> bool:
 
 
 def _is_clz_record_class(clz: Type) -> bool:
-    return clz is not None \
-           and inspect.isclass(clz) \
+    return clz is not None and inspect.isclass(clz) \
            and (issubclass(clz, recordclass.mutabletuple) or issubclass(clz, recordclass.dataobject))
 
+
+def _is_obj_named_tuple(obj: Any) -> bool:
+    return obj is not None \
+           and isinstance(obj, tuple) \
+           and hasattr(obj, "_fields")
+
+
+def _is_clz_named_tuple(clz: Type) -> bool:
+    return clz is not None and inspect.isclass(clz) \
+           and issubclass(clz, tuple) \
+           and hasattr(clz, "_fields")
 
 # ==========
 # file and directory manipulation (creation/removal/browsing)
@@ -83,31 +98,29 @@ def rmdir(
         else:
             path.rmdir()
     else:
-        if missing_ok:
-            return
+        if path.exists():
+            raise OSError(f"Use rm to remove regular file {path}")
         else:
-            raise FileNotFoundError(f"Cannot remove non-exist directory {path}")
+            if missing_ok:
+                return
+            else:
+                raise FileNotFoundError(f"Cannot remove non-exist directory {path}")
 
 
 def rm(
         path: Union[str, Path],
         missing_ok: bool = True,
         force: bool = True,
-        recursive: bool = True,
 ):
     """
     Removes a file/directory.
     :param path: the name of the file/directory.
     :param missing_ok: (-f) ignores error if the file/directory does not exist.
-    :param force: (-f) force remove the file/directory even it's protected.
-    :param recursive: (-r) remove the directory even it's empty.
+    :param force: (-rf) force remove the directory even it's not empty.
     """
     path = _unify_path(path)
     if path.is_dir():
-        if recursive:
-            rmdir(path, missing_ok=missing_ok, force=force)
-        else:
-            path.rmdir()
+        rmdir(path, missing_ok=missing_ok, force=force)
     elif path.exists():
         path.unlink(missing_ok=missing_ok)
     else:
@@ -147,8 +160,7 @@ def mktmp(
         prefix = prefix + separator
     if suffix is not None:
         suffix = separator + suffix
-    fd, path = tempfile.mkstemp(prefix=prefix, suffix=suffix, dir=dir)
-    fd.close()
+    _, path = tempfile.mkstemp(prefix=prefix, suffix=suffix, dir=dir)
     return Path(path)
 
 
@@ -220,11 +232,11 @@ class Fmt(FmtProperty, Enum):
         serialize=True,
     )
     # Pretty-print version with sorting keys
-    jsonPretty = json.value._replace(
+    jsonPretty = json._replace(
         writer=lambda f, obj: json.dump(obj, f, sort_keys=True, indent=4),
     )
     # Pretty-print version without sorting keys
-    jsonNoSort = json.value._replace(
+    jsonNoSort = json._replace(
         writer=lambda f, obj: json.dump(obj, f, indent=4),
     )
     # === jsonl === aka json list
@@ -237,7 +249,7 @@ class Fmt(FmtProperty, Enum):
     )
     txtList = FmtProperty(
         writer=lambda item: str(item),
-        reader=lambda line: line,
+        reader=lambda line: line.replace("\n", ""),
         exts=["txt"],
         line_mode=True,
     )
@@ -250,8 +262,11 @@ class Fmt(FmtProperty, Enum):
 
 
 def infer_fmt_from_ext(ext: str, default: Optional[Fmt] = None) -> Fmt:
+    if ext.startswith("."):
+        ext = ext[1:]
+
     for fmt in Fmt:
-        if fmt.exts is not None and ext in fmt:
+        if fmt.exts is not None and ext in fmt.exts:
             return fmt
 
     if default is not None:
@@ -280,6 +295,9 @@ def serialize(
     elif isinstance(obj, (int, float, str, bool)):
         # Primitive types: keep as-is
         return obj
+    elif _is_obj_named_tuple(obj):
+        # NamedTuple
+        return {k: serialize(v, fmt) for k, v in obj._asdict().items()}
     elif isinstance(obj, (list, set, tuple)):
         # List-like: uniform to list; recursively serialize content
         return [serialize(item, fmt) for item in obj]
@@ -301,7 +319,7 @@ def serialize(
             return serialize(obj.__dict__.items(), fmt)
         else:
             # Newer versions of recordclass
-            return serialize(obj.__fields__, fmt)
+            return serialize({f: getattr(obj, f) for f in obj.__fields__}, fmt)
     else:
         # Custom types: check for "serialize" member function
         if hasattr(obj, "serialize"):
@@ -314,7 +332,6 @@ def serialize(
     return str(obj)
 
     # TODO: handle numpy arrays, pandas structures, pytorch structures, etc.
-    # TODO: what about NamedTuple?
 
 
 class DeserializationError(RuntimeError):
@@ -362,10 +379,17 @@ def deserialize(
         if data is None:
             return data
         else:
-            raise DeserializationError(data, clz, "Non-None data")
+            raise DeserializationError(data, clz, "None type received non-None data")
 
     clz_origin = typing_inspect.get_origin(clz)
+    if clz_origin is None:
+        clz_origin = clz
+        generic = False
+    else:
+        generic = True
     clz_args = typing_inspect.get_args(clz)
+
+    # print(f"deserialize({data=}, {clz=}, {error=}), {clz_origin=}, {clz_args=}")
 
     # Optional type: extract inner type
     if typing_inspect.is_optional_type(clz):
@@ -394,6 +418,13 @@ def deserialize(
         else:
             return ret
 
+    # None data, but not NoneType
+    if data is None:
+        if error == "raise":
+            raise DeserializationError(data, clz, "None data for non-None type")
+        else:
+            return data
+
     # List-like types
     if clz_origin in [list, tuple, set, collections.deque, frozenset]:
         if not isinstance(data, list):
@@ -406,12 +437,12 @@ def deserialize(
             # Unpack list to tuple
             return tuple([
                 # If the list has more items than Tuple[xxx] declared (e.g., [1, 2, 3], Tuple[int]), repeat the last declared type
-                deserialize(x, clz_args[min(i, len(clz_args) - 1)], error=error)
+                deserialize(x, clz_args[min(i, len(clz_args) - 1)] if generic else None, error=error)
                 for i, x in enumerate(data)
             ])
         else:
             # Unpack list
-            ret = [deserialize(x, clz_args[0], error=error) for x in data]
+            ret = [deserialize(x, clz_args[0] if generic else None, error=error) for x in data]
 
             if clz_origin != list:
                 # Convert to appropriate type
@@ -432,7 +463,8 @@ def deserialize(
 
         # Unpack dict
         ret = {
-            deserialize(k, clz_args[0], error=error): deserialize(v, clz_args[1], error=error)
+            deserialize(k, clz_args[0] if generic else None, error=error):
+                deserialize(v, clz_args[1] if generic else None, error=error)
             for k, v in data.items()
         }
         if clz_origin != dict:
@@ -459,7 +491,28 @@ def deserialize(
                 field_values[f] = deserialize(data.get(f), t, error=error)
         return clz(**field_values)
 
-    # TODO: check primitive types; invoke deserialize method; does NamedTuple work?
+    # NamedTuple
+    if _is_clz_named_tuple(clz):
+        field_values = {}
+        for f in clz._fields:
+            if hasattr(clz, "_field_types"):
+                t = clz._field_types.get(f)
+            else:
+                t = None
+            if f in data:
+                field_values[f] = deserialize(data.get(f), t, error=error)
+        return clz(**field_values)
+
+    # Primitive types
+    if clz_origin == type(data):
+        return data
+    if clz_origin == float and type(data) == int:
+        return data
+
+    if error == "raise":
+        raise DeserializationError(data, clz, f"Cannot match requested type ({clz} / {clz_origin}) with data's type ({type(data)})")
+    else:
+        return data
 
 
 def dump(
@@ -547,7 +600,7 @@ def load(
         serialization: Optional[bool] = None,
         clz: Optional[Type] = None,
         error: str = "ignore",
-        yield_per_line: bool = False,
+        iter_line: bool = False,
 ) -> Union[object, Iterator[object]]:
     path = _unify_path(path)
 
@@ -556,7 +609,7 @@ def load(
         fmt = infer_fmt_from_ext(path.suffix)
 
     # Check arguments
-    if yield_per_line and not fmt.line_mode:
+    if iter_line and not fmt.line_mode:
         raise RuntimeError(f"Cannot load format {fmt} file under line mode")
 
     if serialization is None:
@@ -567,23 +620,45 @@ def load(
     if fmt.binary:
         file_mode += "b"
 
-    with open(path, file_mode) as f:
-        # Load content
-        if not fmt.line_mode:
+    # Load content
+    if not fmt.line_mode:
+        with open(path, file_mode) as f:
             obj = fmt.reader(f)
             if serialization:
                 obj = deserialize(obj, clz, error=error)
             return obj
+    else:
+        iterator = LoadIterator(path, file_mode, fmt, serialization, clz, error)
+        if iter_line:
+            return iterator
         else:
-            obj = []
-            for line in f.readlines():
-                item = fmt.reader(line)
-                if serialization:
-                    item = deserialize(item, clz, error=error)
-                if yield_per_line:
-                    yield item
-                else:
-                    obj.append(item)
+            return list(iterator)
 
-            if not yield_per_line:
-                return obj
+
+class LoadIterator(Iterator):
+
+    def __init__(
+            self,
+            path: Path,
+            file_mode: str,
+            fmt: FmtProperty,
+            serialization: bool,
+            clz: Optional[Type],
+            error: str = "ignore",
+    ):
+        self.fd = open(path, file_mode)
+        self.fmt = fmt
+        self.serialization = serialization
+        self.clz = clz
+        self.error = error
+
+    def __next__(self):
+        line = self.fd.readline()
+        if line == "":
+            # EOF
+            self.fd.close()
+            raise StopIteration
+        item = self.fmt.reader(line)
+        if self.serialization:
+            item = deserialize(item, self.clz, error=self.error)
+        return item
