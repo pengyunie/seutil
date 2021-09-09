@@ -1,16 +1,24 @@
+import collections
 import inspect
+import io
 import json
 import os
 import pickle as pkl
+import pydoc
 import shutil
+import tempfile
 from enum import Enum
 from pathlib import Path
 from typing import *
-import io
 
 import recordclass
+import typing_inspect
 import yaml
 
+
+# ==========
+# private utility functions
+# ==========
 
 def _unify_path(path: Union[str, Path]) -> Path:
     if not isinstance(path, Path):
@@ -28,6 +36,10 @@ def _is_clz_record_class(clz: Type) -> bool:
            and inspect.isclass(clz) \
            and (issubclass(clz, recordclass.mutabletuple) or issubclass(clz, recordclass.dataobject))
 
+
+# ==========
+# file and directory manipulation (creation/removal/browsing)
+# ==========
 
 class cd:
     """
@@ -122,6 +134,45 @@ def mkdir(
     path.mkdir(parents=parents, exist_ok=not fresh)
 
 
+def mktmp(
+        prefix: Optional[str] = None,
+        suffix: Optional[str] = None,
+        separator: str = "-",
+        dir: Optional[Path] = None,
+) -> Path:
+    """
+    Makes a temp file.  A wrapper for `tempfile.mkstemp`.
+    """
+    if prefix is not None:
+        prefix = prefix + separator
+    if suffix is not None:
+        suffix = separator + suffix
+    fd, path = tempfile.mkstemp(prefix=prefix, suffix=suffix, dir=dir)
+    fd.close()
+    return Path(path)
+
+
+def mktmp_dir(
+        prefix: Optional[str] = None,
+        suffix: Optional[str] = None,
+        separator: str = "-",
+        dir: Optional[Path] = None,
+) -> Path:
+    """
+    Makes a temp directory.  A wrapper for `tempfile.mkdtemp`.
+    """
+    if prefix is not None:
+        prefix = prefix + separator
+    if suffix is not None:
+        suffix = separator + suffix
+    path = tempfile.mkdtemp(prefix=prefix, suffix=suffix, dir=dir)
+    return Path(path)
+
+
+# ==========
+# multi-format dumping/loading with serialization
+# ==========
+
 class FmtProperty(NamedTuple):
     # The function used by dump
     # * list_like=False:  takes a file-object and obj as input, writes the obj to the file-object
@@ -139,8 +190,8 @@ class FmtProperty(NamedTuple):
     # If the file should be opened in binary mode
     binary: bool = False
 
-    # If it is a list-like formats (reads/writes one line at a time)
-    list_like: bool = False
+    # If the file should be read/writen one line at a time
+    line_mode: bool = False
 
     # If this format requires (de)serialization
     serialize: bool = False
@@ -181,14 +232,14 @@ class Fmt(FmtProperty, Enum):
         writer=lambda item: json.dumps(item),
         reader=lambda line: json.loads(line),
         exts=["jsonl"],
-        list_like=True,
+        line_mode=True,
         serialize=True,
     )
     txtList = FmtProperty(
         writer=lambda item: str(item),
         reader=lambda line: line,
         exts=["txt"],
-        list_like=True,
+        line_mode=True,
     )
     yaml = FmtProperty(
         writer=lambda f, obj: yaml.dump(obj, f),
@@ -220,7 +271,7 @@ def serialize(
 
     :param obj: the object to be serialized.
     :param fmt: (optional) the target format.
-    :return: the serialized version of the object.
+    :return: the serialized object.
     """
     # Examine the type of object and use the appropriate serialization method
     # Check for simple types first
@@ -254,13 +305,161 @@ def serialize(
     else:
         # Custom types: check for "serialize" member function
         if hasattr(obj, "serialize"):
-            return getattr(obj, "serialize")()
-        else:
-            # Last effort: convert to str
-            return str(obj)
+            try:
+                return getattr(obj, "serialize")()
+            except:
+                pass
+
+    # Last effort: convert to str
+    return str(obj)
 
     # TODO: handle numpy arrays, pandas structures, pytorch structures, etc.
     # TODO: what about NamedTuple?
+
+
+class DeserializationError(RuntimeError):
+
+    def __init__(self, data, clz: Optional[Union[Type, str]], reason: str):
+        self.data = data
+        self.clz = clz
+        self.reason = reason
+
+    def __str__(self):
+        return f"Cannot deserialize the following data to {self.clz}: {self.reason}\n  {self.data}"
+
+
+_NON_TYPE = type(None)
+
+
+def deserialize(
+        data,
+        clz: Optional[Union[Type, str]] = None,
+        error: str = "ignore",
+):
+    """
+    Deserializes some data (with only primitive types, list, dict) to an object with
+    proper types.
+    :param data: the data to be deserialized.
+    :param clz: the targeted type of deserialization (or its name); if None, will return
+        the data as-is.
+    :param error: what to do when the deserialization has problem:
+        * raise: raise a DeserializationError.
+        * ignore (default): return the data as-is.
+    :return: the deserialized data.
+    """
+    if clz is None:
+        return data
+
+    assert error in ["raise", "ignore"]
+
+    # Resolve type by name
+    # TODO: cannot resolve generic types
+    if isinstance(clz, str):
+        clz = pydoc.locate(clz)
+
+    # NoneType
+    if clz == _NON_TYPE:
+        if data is None:
+            return data
+        else:
+            raise DeserializationError(data, clz, "Non-None data")
+
+    clz_origin = typing_inspect.get_origin(clz)
+    clz_args = typing_inspect.get_args(clz)
+
+    # Optional type: extract inner type
+    if typing_inspect.is_optional_type(clz):
+        if data is None:
+            return None
+        inner_clz = clz_args[0]
+        try:
+            return deserialize(data, inner_clz, error=error)
+        except DeserializationError as e:
+            raise DeserializationError(data, clz, f"(Optional removed) " + e.reason)
+
+    # Union type: try each inner type
+    if typing_inspect.is_union_type(clz):
+        ret = None
+        for inner_clz in clz_args:
+            try:
+                ret = deserialize(data, inner_clz, error="raise")
+            except DeserializationError:
+                continue
+
+        if ret is None:
+            if error == "raise":
+                raise DeserializationError(data, clz, "All inner types are incompatible")
+            else:
+                return data
+        else:
+            return ret
+
+    # List-like types
+    if clz_origin in [list, tuple, set, collections.deque, frozenset]:
+        if not isinstance(data, list):
+            if error == "raise":
+                raise DeserializationError(data, clz, "Data does not have list structure")
+            else:
+                return data
+
+        if clz_origin == tuple:
+            # Unpack list to tuple
+            return tuple([
+                # If the list has more items than Tuple[xxx] declared (e.g., [1, 2, 3], Tuple[int]), repeat the last declared type
+                deserialize(x, clz_args[min(i, len(clz_args) - 1)], error=error)
+                for i, x in enumerate(data)
+            ])
+        else:
+            # Unpack list
+            ret = [deserialize(x, clz_args[0], error=error) for x in data]
+
+            if clz_origin != list:
+                # Convert to appropriate type
+                return clz_origin(ret)
+            else:
+                return ret
+
+    # Dict-like types
+    if clz_origin in [dict, collections.OrderedDict, collections.defaultdict, collections.Counter]:
+        if not isinstance(data, dict):
+            if error == "raise":
+                raise DeserializationError(data, clz, "Data does not have dict structure")
+            else:
+                return data
+
+        if clz_origin == collections.OrderedDict:
+            raise RuntimeWarning(f"The order of items in OrderedDict may not be preserved")
+
+        # Unpack dict
+        ret = {
+            deserialize(k, clz_args[0], error=error): deserialize(v, clz_args[1], error=error)
+            for k, v in data.items()
+        }
+        if clz_origin != dict:
+            # Convert to appropriate type
+            return clz_origin(ret)
+        else:
+            return ret
+
+    # Enum
+    if inspect.isclass(clz) and issubclass(clz, Enum):
+        if isinstance(data, str):
+            return clz[data]
+        else:
+            if error == "raise":
+                raise DeserializationError(data, clz, "Enum data must be str (name)")
+            else:
+                return data
+
+    # RecordClass
+    if _is_clz_record_class(clz):
+        field_values = {}
+        for f, t in get_type_hints(clz).items():
+            if f in data:
+                field_values[f] = deserialize(data.get(f), t, error=error)
+        return clz(**field_values)
+
+    # TODO: check primitive types; invoke deserialize method; does NamedTuple work?
 
 
 def dump(
@@ -314,7 +513,7 @@ def dump(
     if fmt is None:
         fmt = infer_fmt_from_ext(path.suffix)
 
-    if append and not fmt.list_like:
+    if append and not fmt.line_mode:
         raise RuntimeWarning(f"Appending to a format that's not list-like ({fmt}) may result in invalid file")
 
     # Serialize (when appropriate)
@@ -322,7 +521,10 @@ def dump(
         serialization = fmt.serialize
 
     if serialization:
-        obj = serialize(obj)
+        obj = serialize(
+            obj,
+            fmt=fmt if serialization_fmt_aware else None,
+        )
 
     # Open file
     file_mode = "w" if not append else "a"
@@ -331,7 +533,7 @@ def dump(
 
     with open(path, file_mode) as f:
         # Write content
-        if not fmt.list_like:
+        if not fmt.line_mode:
             fmt.writer(f, obj)
         else:
             for item in obj:
@@ -339,7 +541,49 @@ def dump(
                 f.write(fmt.writer(item).replace("\n", " ") + "\n")
 
 
-# TODO: function deserialize
-# TODO: function load
-# TODO: create temp file
+def load(
+        path: Union[str, Path],
+        fmt: Optional[Fmt] = None,
+        serialization: Optional[bool] = None,
+        clz: Optional[Type] = None,
+        error: str = "ignore",
+        yield_per_line: bool = False,
+) -> Union[object, Iterator[object]]:
+    path = _unify_path(path)
 
+    # Infer format
+    if fmt is None:
+        fmt = infer_fmt_from_ext(path.suffix)
+
+    # Check arguments
+    if yield_per_line and not fmt.line_mode:
+        raise RuntimeError(f"Cannot load format {fmt} file under line mode")
+
+    if serialization is None:
+        serialization = fmt.serialize
+
+    # Open file
+    file_mode = "r"
+    if fmt.binary:
+        file_mode += "b"
+
+    with open(path, file_mode) as f:
+        # Load content
+        if not fmt.line_mode:
+            obj = fmt.reader(f)
+            if serialization:
+                obj = deserialize(obj, clz, error=error)
+            return obj
+        else:
+            obj = []
+            for line in f.readlines():
+                item = fmt.reader(line)
+                if serialization:
+                    item = deserialize(item, clz, error=error)
+                if yield_per_line:
+                    yield item
+                else:
+                    obj.append(item)
+
+            if not yield_per_line:
+                return obj
