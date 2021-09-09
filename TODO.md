@@ -1,11 +1,31 @@
 # v1.0 Planned Features and Changes
 
+- CliUtils -> args
+
+  - Option without values should not default to `1`, but default to
+    `True` or user specified value
+    
+  - Support parsing lists separated by whitespace or user specified
+    char (`,`, `;`)
+    
+  - Support parsing dicts in json/yaml format
+  
+- Initializing a (Python) project structure using seutil
+    
+- latex
+
+  - Add some util functions: `escape_str` etc
+  
+  - Make `File.__init__` accept additional parameter `owner: str`
+  
+  - Add `Table` class
+
 - IOUtils -> io
 
   + Rename API rm_dir > rmdir
   + Re-add API mkdir
   
-  ~ More powerful and easy-to-use load & dump functions
+  + More powerful and easy-to-use load & dump functions
     + support serialization (replacing the original jsonfy & dejsonfy)
     + support xList formats together with others, and optional progress bar for them
     
@@ -17,16 +37,6 @@
     name, type, size, string representation
     
   ~ Function to shrink a complex data structure to a small size for debugging
-
-- CliUtils -> anyargparse
-
-  - Option without values should not default to `1`, but default to
-    `True` or user specified value
-    
-  - Support parsing lists separated by whitespace or user specified
-    char (`,`, `;`)
-    
-  - Support parsing dicts in json/yaml format
   
 - `GitHubUtils`
 
@@ -47,14 +57,6 @@
 
   - Change to something like a `LogManager` to use instance level
     configs
-    
-- latex
-
-  - Add some util functions: `escape_str` etc
-  
-  - Make `File.__init__` accept additional parameter `owner: str`
-  
-  - Add `Table` class
 
 - Interaction with JVM
 
