@@ -12,6 +12,7 @@ from .LoggingUtils import LoggingUtils
 from .Stream import Stream
 from .TimeUtils import TimeUtils, TimeoutException
 from . import debug
+from . import io
 
 __all__ = [
     # Classes
