@@ -1,4 +1,6 @@
+import inspect
 import unittest
+from typing import *
 
 import seutil as su
 
@@ -96,6 +98,32 @@ class test_args(unittest.TestCase):
 
         self.assertEquals(len(args), 6)
         print(args)
+
+    def test_args_fill_signature(self):
+        args = su.args.Args(
+            free=[su.args.Arg("34"), su.args.Arg("56.7"), su.args.Arg("ccc")],
+            named={
+                "opt1": su.args.Arg(["1", "2", "3"]),
+                "color": su.args.Arg("red"),
+                "yes": su.args.Arg(None),
+            },
+        )
+
+        def c1(a: su.args.Args, other: int = 3):
+            pass
+
+        ret1 = args.fill_signature(inspect.Signature.from_callable(c1))
+        self.assertEquals(ret1.arguments["a"], args)
+        self.assertEquals(ret1.arguments["other"], 3)
+
+        def c2(opt1: List[str], color: str, yes: bool, *a):
+            pass
+
+        ret2 = args.fill_signature(inspect.Signature.from_callable(c2))
+        self.assertEquals(ret2.arguments["opt1"], ["1", "2", "3"])
+        self.assertEquals(ret2.arguments["color"], "red")
+        self.assertEquals(ret2.arguments["yes"], True)
+        self.assertEquals(ret2.arguments["a"], [34, 56.7, "ccc"])
 
 
 class test_args_parse(unittest.TestCase):

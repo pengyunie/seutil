@@ -1,7 +1,8 @@
+ijson~=3.1.1
+jsonargparse[all]~=3.19.4
+numpy>=1.14.4
 PyGitHub>=1.40
 PyYAML>=5.1
-ijson~=3.1.1
-numpy>=1.14.4
 recordclass>=0.11.1
 typing_inspect>=0.4.0
 unidiff>=0.5.5

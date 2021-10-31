@@ -175,6 +175,9 @@ class Args(NamedTuple):
         return self.__str__()
 
     def fill_signature(self, sig: inspect.Signature) -> inspect.BoundArguments:
+        # TODO: fill in **options arg
+        # TODO: log more about untyped values, mismatch types, etc.
+        # TODO: support automatically convert str to Path.
         params_type_args = []
         kwargs = {}
         missing_params = []
@@ -183,6 +186,7 @@ class Args(NamedTuple):
             if param.annotation == Args:
                 params_type_args.append(name)
             elif name in self.named:
+                # Matching arg name and param name: try to fill in this param
                 dtype = None
                 as_list = False
                 if param.annotation in [int, float, bool]:
@@ -342,6 +346,7 @@ def parse(
 
 
 def get_targets(module_name: str) -> Dict[str, Callable]:
+    """Gets all the function targets in a module."""
     targets = {}
     for name, obj in inspect.getmembers(sys.modules[module_name]):
         if inspect.isfunction(obj):
@@ -354,6 +359,14 @@ def dispatch(
         targets: Dict[str, Callable],
         default_target: str = "main",
 ):
+    """
+    Dispatches the arguments to one of the targets.  The target name should be specified as the first free argument,
+    or the default target is used.
+    :param argv:
+    :param targets:
+    :param default_target:
+    :return:
+    """
     logger = LoggingUtils.get_logger("args.main")
     logger.info("Starting")
 
@@ -370,6 +383,6 @@ def dispatch(
         f = targets[target]
         sig = inspect.Signature.from_callable(f)
         bounded_args = args.fill_signature(sig)
-        f(*bounded_args.args, **bounded_args.kwargs)
-
-    logger.info("Terminating")
+        ret = f(*bounded_args.args, **bounded_args.kwargs)
+        logger.info("Terminating")
+        return ret
