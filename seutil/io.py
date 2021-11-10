@@ -17,14 +17,25 @@ import typing_inspect
 import yaml
 
 __all__ = [
-    "cd", "rmdir", "rm", "mkdir", "mktmp", "mktmp_dir",
-    "Fmt", "serialize", "deserialize", "load", "dump", "DeserializationError",
+    "cd",
+    "rmdir",
+    "rm",
+    "mkdir",
+    "mktmp",
+    "mktmp_dir",
+    "Fmt",
+    "serialize",
+    "deserialize",
+    "load",
+    "dump",
+    "DeserializationError",
 ]
 
 
 # ==========
 # private utility functions
 # ==========
+
 
 def _unify_path(path: Union[str, Path]) -> Path:
     if not isinstance(path, Path):
@@ -33,29 +44,41 @@ def _unify_path(path: Union[str, Path]) -> Path:
 
 
 def _is_obj_record_class(obj: Any) -> bool:
-    return obj is not None \
-           and isinstance(obj, recordclass.mutabletuple) or isinstance(obj, recordclass.dataobject)
+    return (
+        obj is not None
+        and isinstance(obj, recordclass.mutabletuple)
+        or isinstance(obj, recordclass.dataobject)
+    )
 
 
 def _is_clz_record_class(clz: Type) -> bool:
-    return clz is not None and inspect.isclass(clz) \
-           and (issubclass(clz, recordclass.mutabletuple) or issubclass(clz, recordclass.dataobject))
+    return (
+        clz is not None
+        and inspect.isclass(clz)
+        and (
+            issubclass(clz, recordclass.mutabletuple)
+            or issubclass(clz, recordclass.dataobject)
+        )
+    )
 
 
 def _is_obj_named_tuple(obj: Any) -> bool:
-    return obj is not None \
-           and isinstance(obj, tuple) \
-           and hasattr(obj, "_fields")
+    return obj is not None and isinstance(obj, tuple) and hasattr(obj, "_fields")
 
 
 def _is_clz_named_tuple(clz: Type) -> bool:
-    return clz is not None and inspect.isclass(clz) \
-           and issubclass(clz, tuple) \
-           and hasattr(clz, "_fields")
+    return (
+        clz is not None
+        and inspect.isclass(clz)
+        and issubclass(clz, tuple)
+        and hasattr(clz, "_fields")
+    )
+
 
 # ==========
 # file and directory manipulation (creation/removal/browsing)
 # ==========
+
 
 class cd:
     """
@@ -82,9 +105,9 @@ class cd:
 
 
 def rmdir(
-        path: Union[str, Path],
-        missing_ok: bool = True,
-        force: bool = True,
+    path: Union[str, Path],
+    missing_ok: bool = True,
+    force: bool = True,
 ):
     """
     Removes a directory.
@@ -109,9 +132,9 @@ def rmdir(
 
 
 def rm(
-        path: Union[str, Path],
-        missing_ok: bool = True,
-        force: bool = True,
+    path: Union[str, Path],
+    missing_ok: bool = True,
+    force: bool = True,
 ):
     """
     Removes a file/directory.
@@ -130,9 +153,9 @@ def rm(
 
 
 def mkdir(
-        path: Union[str, Path],
-        parents: bool = True,
-        fresh: bool = False,
+    path: Union[str, Path],
+    parents: bool = True,
+    fresh: bool = False,
 ):
     """
     Creates a directory.
@@ -149,10 +172,10 @@ def mkdir(
 
 
 def mktmp(
-        prefix: Optional[str] = None,
-        suffix: Optional[str] = None,
-        separator: str = "-",
-        dir: Optional[Path] = None,
+    prefix: Optional[str] = None,
+    suffix: Optional[str] = None,
+    separator: str = "-",
+    dir: Optional[Path] = None,
 ) -> Path:
     """
     Makes a temp file.  A wrapper for `tempfile.mkstemp`.
@@ -166,10 +189,10 @@ def mktmp(
 
 
 def mktmp_dir(
-        prefix: Optional[str] = None,
-        suffix: Optional[str] = None,
-        separator: str = "-",
-        dir: Optional[Path] = None,
+    prefix: Optional[str] = None,
+    suffix: Optional[str] = None,
+    separator: str = "-",
+    dir: Optional[Path] = None,
 ) -> Path:
     """
     Makes a temp directory.  A wrapper for `tempfile.mkdtemp`.
@@ -185,6 +208,7 @@ def mktmp_dir(
 # ==========
 # multi-format dumping/loading with serialization
 # ==========
+
 
 class FmtProperty(NamedTuple):
     # The function used by dump
@@ -273,12 +297,12 @@ def infer_fmt_from_ext(ext: str, default: Optional[Fmt] = None) -> Fmt:
     if default is not None:
         return default
     else:
-        raise RuntimeError(f"Cannot infer format for extension \"{ext}\"")
+        raise RuntimeError(f'Cannot infer format for extension "{ext}"')
 
 
 def serialize(
-        obj: object,
-        fmt: Optional[Fmt] = None,
+    obj: object,
+    fmt: Optional[Fmt] = None,
 ) -> object:
     """
     Serializes an object into a data structure with only primitive types, list, dict.
@@ -328,13 +352,14 @@ def serialize(
             # Newer versions of recordclass
             return {f: serialize(getattr(obj, f), fmt) for f in obj.__fields__}
     else:
-        raise TypeError(f"Cannot serialize object of type {type(obj)}, please consider writing a serialize() function")
+        raise TypeError(
+            f"Cannot serialize object of type {type(obj)}, please consider writing a serialize() function"
+        )
 
     # TODO: handle numpy arrays, pandas structures, pytorch structures, etc.
 
 
 class DeserializationError(RuntimeError):
-
     def __init__(self, data, clz: Optional[Union[Type, str]], reason: str):
         self.data = data
         self.clz = clz
@@ -348,9 +373,9 @@ _NON_TYPE = type(None)
 
 
 def deserialize(
-        data,
-        clz: Optional[Union[Type, str]] = None,
-        error: str = "ignore",
+    data,
+    clz: Optional[Union[Type, str]] = None,
+    error: str = "ignore",
 ):
     """
     Deserializes some data (with only primitive types, list, dict) to an object with
@@ -411,7 +436,9 @@ def deserialize(
 
         if ret is None:
             if error == "raise":
-                raise DeserializationError(data, clz, "All inner types are incompatible")
+                raise DeserializationError(
+                    data, clz, "All inner types are incompatible"
+                )
             else:
                 return data
         else:
@@ -428,20 +455,31 @@ def deserialize(
     if clz_origin in [list, tuple, set, collections.deque, frozenset]:
         if not isinstance(data, list):
             if error == "raise":
-                raise DeserializationError(data, clz, "Data does not have list structure")
+                raise DeserializationError(
+                    data, clz, "Data does not have list structure"
+                )
             else:
                 return data
 
         if clz_origin == tuple:
             # Unpack list to tuple
-            return tuple([
-                # If the list has more items than Tuple[xxx] declared (e.g., [1, 2, 3], Tuple[int]), repeat the last declared type
-                deserialize(x, clz_args[min(i, len(clz_args) - 1)] if generic else None, error=error)
-                for i, x in enumerate(data)
-            ])
+            return tuple(
+                [
+                    # If the list has more items than Tuple[xxx] declared (e.g., [1, 2, 3], Tuple[int]), repeat the last declared type
+                    deserialize(
+                        x,
+                        clz_args[min(i, len(clz_args) - 1)] if generic else None,
+                        error=error,
+                    )
+                    for i, x in enumerate(data)
+                ]
+            )
         else:
             # Unpack list
-            ret = [deserialize(x, clz_args[0] if generic else None, error=error) for x in data]
+            ret = [
+                deserialize(x, clz_args[0] if generic else None, error=error)
+                for x in data
+            ]
 
             if clz_origin != list:
                 # Convert to appropriate type
@@ -450,20 +488,30 @@ def deserialize(
                 return ret
 
     # Dict-like types
-    if clz_origin in [dict, collections.OrderedDict, collections.defaultdict, collections.Counter]:
+    if clz_origin in [
+        dict,
+        collections.OrderedDict,
+        collections.defaultdict,
+        collections.Counter,
+    ]:
         if not isinstance(data, dict):
             if error == "raise":
-                raise DeserializationError(data, clz, "Data does not have dict structure")
+                raise DeserializationError(
+                    data, clz, "Data does not have dict structure"
+                )
             else:
                 return data
 
         if clz_origin == collections.OrderedDict:
-            raise RuntimeWarning(f"The order of items in OrderedDict may not be preserved")
+            raise RuntimeWarning(
+                f"The order of items in OrderedDict may not be preserved"
+            )
 
         # Unpack dict
         ret = {
-            deserialize(k, clz_args[0] if generic else None, error=error):
-                deserialize(v, clz_args[1] if generic else None, error=error)
+            deserialize(k, clz_args[0] if generic else None, error=error): deserialize(
+                v, clz_args[1] if generic else None, error=error
+            )
             for k, v in data.items()
         }
         if clz_origin != dict:
@@ -512,7 +560,9 @@ def deserialize(
         field_values = {}
         for f in dataclasses.fields(clz):
             if f.name in data:
-                field_values[f.name] = deserialize(data.get(f.name), f.type, error=error)
+                field_values[f.name] = deserialize(
+                    data.get(f.name), f.type, error=error
+                )
         return clz(**field_values)
 
     # Primitive types
@@ -522,20 +572,24 @@ def deserialize(
         return data
 
     if error == "raise":
-        raise DeserializationError(data, clz, f"Cannot match requested type ({clz} / {clz_origin}) with data's type ({type(data)})")
+        raise DeserializationError(
+            data,
+            clz,
+            f"Cannot match requested type ({clz} / {clz_origin}) with data's type ({type(data)})",
+        )
     else:
         return data
 
 
 def dump(
-        path: Union[str, Path],
-        obj: object,
-        fmt: Optional[Fmt] = None,
-        serialization: Optional[bool] = None,
-        parents: bool = True,
-        append: bool = False,
-        exists_ok: bool = True,
-        serialization_fmt_aware: bool = True,
+    path: Union[str, Path],
+    obj: object,
+    fmt: Optional[Fmt] = None,
+    serialization: Optional[bool] = None,
+    parents: bool = True,
+    append: bool = False,
+    exists_ok: bool = True,
+    serialization_fmt_aware: bool = True,
 ) -> None:
     """
     Saves an object to a file.
@@ -579,7 +633,9 @@ def dump(
         fmt = infer_fmt_from_ext(path.suffix)
 
     if append and not fmt.line_mode:
-        raise RuntimeWarning(f"Appending to a format that's not list-like ({fmt}) may result in invalid file")
+        raise RuntimeWarning(
+            f"Appending to a format that's not list-like ({fmt}) may result in invalid file"
+        )
 
     # Serialize (when appropriate)
     if serialization is None:
@@ -607,12 +663,12 @@ def dump(
 
 
 def load(
-        path: Union[str, Path],
-        fmt: Optional[Fmt] = None,
-        serialization: Optional[bool] = None,
-        clz: Optional[Type] = None,
-        error: str = "ignore",
-        iter_line: bool = False,
+    path: Union[str, Path],
+    fmt: Optional[Fmt] = None,
+    serialization: Optional[bool] = None,
+    clz: Optional[Type] = None,
+    error: str = "ignore",
+    iter_line: bool = False,
 ) -> Union[object, Iterator[object]]:
     path = _unify_path(path)
 
@@ -648,15 +704,14 @@ def load(
 
 
 class LoadIterator(Iterator):
-
     def __init__(
-            self,
-            path: Path,
-            file_mode: str,
-            fmt: FmtProperty,
-            serialization: bool,
-            clz: Optional[Type],
-            error: str = "ignore",
+        self,
+        path: Path,
+        file_mode: str,
+        fmt: FmtProperty,
+        serialization: bool,
+        clz: Optional[Type],
+        error: str = "ignore",
     ):
         self.fd = open(path, file_mode)
         self.fmt = fmt
