@@ -1,4 +1,5 @@
 import collections
+import dataclasses
 import inspect
 import io
 import json
@@ -295,9 +296,15 @@ def serialize(
     elif isinstance(obj, (int, float, str, bool)):
         # Primitive types: keep as-is
         return obj
+    elif hasattr(obj, "serialize"):
+        # Call customized serialization method if exists
+        return getattr(obj, "serialize")()
     elif _is_obj_named_tuple(obj):
         # NamedTuple
         return {k: serialize(v, fmt) for k, v in obj._asdict().items()}
+    elif dataclasses.is_dataclass(obj):
+        # Dataclass
+        return {k: serialize(v, fmt) for k, v in dataclasses.asdict(obj).items()}
     elif isinstance(obj, (list, set, tuple)):
         # List-like: uniform to list; recursively serialize content
         return [serialize(item, fmt) for item in obj]
@@ -316,20 +323,12 @@ def serialize(
         # RecordClass: convert to dict
         if hasattr(obj, "__dict__"):
             # Older versions of recordclass
-            return serialize(obj.__dict__.items(), fmt)
+            return {k: serialize(v, fmt) for k, v in obj.__dict__.items()}
         else:
             # Newer versions of recordclass
-            return serialize({f: getattr(obj, f) for f in obj.__fields__}, fmt)
+            return {f: serialize(getattr(obj, f), fmt) for f in obj.__fields__}
     else:
-        # Custom types: check for "serialize" member function
-        if hasattr(obj, "serialize"):
-            try:
-                return getattr(obj, "serialize")()
-            except:
-                pass
-
-    # Last effort: convert to str
-    return str(obj)
+        raise TypeError(f"Cannot serialize object of type {type(obj)}, please consider writing a serialize() function")
 
     # TODO: handle numpy arrays, pandas structures, pytorch structures, etc.
 
@@ -473,6 +472,11 @@ def deserialize(
         else:
             return ret
 
+    # Use customized deserialize function, if exists
+    if inspect.isclass(clz) and hasattr(clz, "deserialize"):
+        # TODO: check parameter of the deserialize function
+        return getattr(clz, "deserialize")(data)
+
     # Enum
     if inspect.isclass(clz) and issubclass(clz, Enum):
         if isinstance(data, str):
@@ -501,6 +505,14 @@ def deserialize(
                 t = None
             if f in data:
                 field_values[f] = deserialize(data.get(f), t, error=error)
+        return clz(**field_values)
+
+    # DataClass
+    if dataclasses.is_dataclass(clz):
+        field_values = {}
+        for f in dataclasses.fields(clz):
+            if f.name in data:
+                field_values[f.name] = deserialize(data.get(f.name), f.type, error=error)
         return clz(**field_values)
 
     # Primitive types
