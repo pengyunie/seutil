@@ -1,24 +1,20 @@
 # v1.0 Planned Features and Changes
 
-- CliUtils -> args
-
-  - Option without values should not default to `1`, but default to
-    `True` or user specified value
-    
-  - Support parsing lists separated by whitespace or user specified
-    char (`,`, `;`)
-    
-  - Support parsing dicts in json/yaml format
-  
-- Initializing a (Python) project structure using seutil
+- CliUtils -> use jsonargparse instead
     
 - latex
+
+  - When generating new \UseMacro in tables (e.g., table caption and
+    name), if that macro is not \DefMacro'd in macros.tex,
+    automatically add that.
 
   - Add some util functions: `escape_str` etc
   
   - Make `File.__init__` accept additional parameter `owner: str`
   
-  - Add `Table` class
+  - Add `Table` class:
+    specify columns -> generate \begin{tabular}{...}
+    support separators (\midrule), multirow, multicolumn, spaces between columns/rows
 
 - IOUtils -> io
 
