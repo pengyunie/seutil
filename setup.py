@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="seutil",
-    version="0.6.0",
+    version="0.6.1",
     author="Pengyu Nie",
     author_email="prodigy.sov@gmail.com",
     description="Python utilities for SE research",
@@ -18,13 +18,5 @@ setuptools.setup(
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: POSIX :: Linux",
     ],
-    install_requires=[
-        "PyGitHub>=1.40",
-        "PyYAML>=5.1",
-        "ijson~=3.1.1",
-        "numpy>=1.14.4",
-        "recordclass>=0.11.1",
-        "typing_inspect>=0.4.0",
-        "unidiff>=0.5.5",
-    ],
+    install_requires=[line.strip() for line in open("requirements.txt").readlines()],
 )
