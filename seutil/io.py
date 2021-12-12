@@ -10,7 +10,17 @@ import shutil
 import tempfile
 from enum import Enum
 from pathlib import Path
-from typing import *
+from typing import (
+    Any,
+    Callable,
+    Iterator,
+    List,
+    NamedTuple,
+    Optional,
+    Type,
+    Union,
+    get_type_hints,
+)
 
 import recordclass
 import typing_inspect
@@ -603,7 +613,7 @@ def dump(
     :param serialization: whether or not to serialize the object before saving:
         * True: always serialize;
         * None (default): only serialize for the formats that needs it;
-        * None: never serialize.
+        * False: never serialize.
     :param parents: what to do if parent directories of path do not exist:
         * True (default): automatically create them;
         * False: raise Exception.
@@ -670,6 +680,24 @@ def load(
     error: str = "ignore",
     iter_line: bool = False,
 ) -> Union[object, Iterator[object]]:
+    """
+    Loads an object from a file.
+    The format is automatically inferred from the file name, if not otherwise specified.
+    By default, if clz is given, deserialization (i.e., unpackingn from primitive types
+    and data structures) is automatically performed for the formats that needs it (e.g., json).
+
+    :param path: the path to load the object.
+    :param fmt: the format of the file; if None (default), inferred from path.
+    :param serialization: whether or not to deserialize the object after loading:
+        * True: always serialize;
+        * None (default): only serialize for the formats that needs it;
+        * False: never serialize.
+    :param clz: the class to use for deserialization; if None (default), deserialization is a no-op.
+    :param error: what to do if deserialization fails:
+        * raise: raise a DeserializationError.
+        * ignore (default): return the data as-is.
+    :param iter_line: whether to iterate over the lines of the file instead of loading the whole file.
+    """
     path = _unify_path(path)
 
     # Infer format
