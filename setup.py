@@ -26,7 +26,7 @@ setuptools.setup(
         "recordclass>=0.11.1",
         "typing_inspect>=0.4.0",
         "unidiff>=0.5.5",
-        "jsonargparse[all]~=3.19.4",
+        "jsonargparse[all]>=3.19.4,<4.2.0",
         "varname>=0.7.1",
     ],
 )
