@@ -1,3 +1,4 @@
+# IMPORTANT: when modifying this file, be sure to update setup.py as well!
 ijson~=3.1.1
 jsonargparse[all]~=3.19.4
 numpy>=1.14.4
