@@ -26,8 +26,10 @@ def setup(
     log_file: Optional[Union[str, Path]] = None,
     level_stderr: Union[int, str] = logging.INFO,
     level_file: Union[int, str] = logging.DEBUG,
-    fmt_stderr: str = "[{relativeCreated:6.0f}{levelname[0]}]{name}: {message}",
+    fmt_stderr: str = "[{asctime}{levelname[0]}]{name}: {message}",
+    datefmt_stderr: str = "%H:%M:%S",
     fmt_file: str = "[{asctime}|{relativeCreated:.3f}|{levelname:7}]{name}: {message} [@{filename}:{lineno}|{funcName}|pid {process}|tid {thread}]",
+    datefmt_file: str = "%Y-%m-%d %H:%M:%S",
     clear_handlers: bool = True,
     **kwargs_file: dict,
 ):
@@ -52,7 +54,9 @@ def setup(
 
     # update the stderr handler
     handler_stderr.setLevel(level_stderr)
-    handler_stderr.setFormatter(logging.Formatter(fmt_stderr, style="{"))
+    handler_stderr.setFormatter(
+        logging.Formatter(fmt_stderr, datefmt_stderr, style="{")
+    )
     root_logger.addHandler(handler_stderr)
 
     # update the file handler
@@ -63,7 +67,7 @@ def setup(
         kwargs_file.setdefault("backupCount", 1)
         handler_file = RotatingFileHandler(log_file, **kwargs_file)
         handler_file.setLevel(level_file)
-        handler_file.setFormatter(logging.Formatter(fmt_file, style="{"))
+        handler_file.setFormatter(logging.Formatter(fmt_file, datefmt_file, style="{"))
 
         root_logger.addHandler(handler_file)
     else:
