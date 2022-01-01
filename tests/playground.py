@@ -34,5 +34,20 @@ def test_io():
     print(f"{getattr(clz, 'deserialize')(123)=}")
 
 
+def test_pbar():
+    import time
+    # from tqdm import tqdm
+    from seutil.pbar import tqdm
+
+    for i in tqdm(range(10)):
+        for j in tqdm(range(10)):
+            # print(f"{(i, j)=}")
+            time.sleep(0.4)
+
+        for j in tqdm(enumerate(range(10))):
+            # print(f"{(i, j)=}")
+            time.sleep(0.4)
+
+
 if __name__ == "__main__":
     CLI(as_positional=False)
