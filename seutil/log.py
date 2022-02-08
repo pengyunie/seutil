@@ -11,6 +11,7 @@ import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional, Union
+from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 __all__ = [
     "setup",
