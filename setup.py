@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="seutil",
-    version="0.6.2",
+    version="0.7.0",
     author="Pengyu Nie",
     author_email="prodigy.sov@gmail.com",
     description="Python utilities for SE research",
@@ -19,15 +19,15 @@ setuptools.setup(
         "Operating System :: POSIX :: Linux",
     ],
     install_requires=[
+        "ijson~=3.1.4",
+        "jsonargparse[all]~=4.1.4",
+        "numpy>=1.14.4",
         "PyGitHub>=1.40",
         "PyYAML>=5.1",
-        "ijson~=3.1.1",
-        "numpy>=1.14.4",
         "recordclass>=0.11.1",
         "tqdm~=4.62.3",
         "typing_inspect>=0.4.0",
         "unidiff>=0.5.5",
-        "jsonargparse[all]>=3.19.4,<4.2.0",
         "varname>=0.7.1",
     ],
 )
