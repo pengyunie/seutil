@@ -5,6 +5,7 @@ numpy>=1.14.4
 PyGitHub>=1.40
 PyYAML>=5.1
 recordclass>=0.11.1
+tqdm~=4.62.3
 typing_inspect>=0.4.0
 unidiff>=0.5.5
 varname>=0.7.1

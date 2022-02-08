@@ -9,9 +9,10 @@ Python utilities for SE(+ML) research.  This library stays reasonably up-to-date
 Mature functions:
 - io: loading/dumping files with serailization support, managing files;
 - bash: running Bash command;
+- log: for easy setup logging;
 
 Incubating functions:
-- LoggingUtils: for logging;
+- pbar: improve tqdm's output in emacs-shell like terminals;
 - GitHubUtils: for mining GitHub, using `PyGitHub` package;
 - MiscUtils: for whatever functions that may not belong to other classes;
 - Stream: similar to java.utils.Stream;
@@ -23,3 +24,4 @@ Deprecated functions:
 - BashUtils: the previous version of bash;
 - IOUtils: the previous version of io;
 - CliUtils: for command line argument parsing without the need to declare each argument, recommended to use jsonargparse library;
+- LoggingUtils: the previous version of log;

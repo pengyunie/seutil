@@ -24,6 +24,7 @@ setuptools.setup(
         "ijson~=3.1.1",
         "numpy>=1.14.4",
         "recordclass>=0.11.1",
+        "tqdm~=4.62.3",
         "typing_inspect>=0.4.0",
         "unidiff>=0.5.5",
         "jsonargparse[all]>=3.19.4,<4.2.0",

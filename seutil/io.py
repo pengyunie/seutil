@@ -261,11 +261,12 @@ class Fmt(FmtProperty, Enum):
     # === json ===
     json = FmtProperty(
         writer=lambda f, obj: json.dump(obj, f, sort_keys=True),
-        # Use yaml loader to allow formatting errors (e.g., trailing commas)
-        reader=lambda f: yaml.load(f, Loader=yaml.FullLoader),
+        reader=lambda f: json.load(f),
         exts=["json"],
         serialize=True,
     )
+    # Use yaml loader to allow formatting errors (e.g., trailing commas), but cannot handle unprintable chars
+    jsonFlexible = json._replace(reader=lambda f: yaml.load(f, Loader=yaml.FullLoader))
     # Pretty-print version with sorting keys
     jsonPretty = json._replace(
         writer=lambda f, obj: json.dump(obj, f, sort_keys=True, indent=4),
@@ -274,7 +275,7 @@ class Fmt(FmtProperty, Enum):
     jsonNoSort = json._replace(
         writer=lambda f, obj: json.dump(obj, f, indent=4),
     )
-    # === jsonl === aka json list
+    # === jsonl (json list) ===
     jsonList = FmtProperty(
         writer=lambda item: json.dumps(item),
         reader=lambda line: json.loads(line),
@@ -282,12 +283,14 @@ class Fmt(FmtProperty, Enum):
         line_mode=True,
         serialize=True,
     )
+    # === text list ===
     txtList = FmtProperty(
         writer=lambda item: str(item),
         reader=lambda line: line.replace("\n", ""),
         exts=["txt"],
         line_mode=True,
     )
+    # === yaml ===
     yaml = FmtProperty(
         writer=lambda f, obj: yaml.dump(obj, f),
         reader=lambda f: yaml.load(f, Loader=yaml.FullLoader),
