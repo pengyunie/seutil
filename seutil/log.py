@@ -8,16 +8,18 @@ This module assists the logging standard library.  The main functionality is:
 """
 import logging
 import sys
+from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional, Union
-from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 __all__ = [
     "setup",
     "get_logger",
 ]
 
+
+LOGGING_NAMESPACE = "su"
 
 handler_stderr = logging.StreamHandler(sys.stderr)
 handler_file = None
@@ -47,8 +49,10 @@ def setup(
     """
     global handler_stderr, handler_file
 
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.NOTSET)
+    root_logger = logging.getLogger(LOGGING_NAMESPACE)
+    root_logger.propagate = False
+    # set to NOTSET+1, so that child logger's effective level can be correctly computed based on this logger
+    root_logger.setLevel(logging.NOTSET + 1)
 
     if clear_handlers:
         root_logger.handlers = []
@@ -79,6 +83,6 @@ def get_logger(name: str, level: Union[int, str] = logging.NOTSET):
     """
     Get a logger with specified name and level.
     """
-    logger = logging.getLogger(name)
+    logger = logging.getLogger(LOGGING_NAMESPACE + "." + name)
     logger.setLevel(level)
     return logger
