@@ -20,7 +20,7 @@ setuptools.setup(
     ],
     install_requires=[
         "ijson~=3.1.4",
-        "jsonargparse[all]~=4.1.4",
+        "jsonargparse[all]>=4.1.4,<4.3.0",
         "numpy>=1.14.4",
         "PyGitHub>=1.40",
         "PyYAML>=5.1",
