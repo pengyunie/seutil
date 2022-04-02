@@ -2,8 +2,10 @@ import unittest
 from pathlib import Path
 from typing import *
 
+import pytest
 import seutil as su
 from seutil.project import Project
+
 from .TestSupport import TestSupport
 
 
@@ -29,6 +31,7 @@ class test_project(unittest.TestCase):
         projects = Project.from_projects_database(sample_projects_database)
         return projects
 
+    @pytest.mark.slow
     def test_clone_and_remove(self):
         project = self.get_a_test_project()
         with TestSupport.get_playground_path():
@@ -48,6 +51,7 @@ class test_project(unittest.TestCase):
             self.assertIsNone(project.checkout_dir)
             self.assertFalse(expected_project_dir.is_dir())
 
+    @pytest.mark.slow
     def test_checkout_and_revisions(self):
         project = self.get_a_test_project()
         with TestSupport.get_playground_path():
@@ -76,6 +80,7 @@ class test_project(unittest.TestCase):
             project.checkout(revision)
             self.assertEqual(revision, project.revision)
 
+    @pytest.mark.slow
     def test_dump_all_revisions(self):
         project = self.get_a_test_project()
         with TestSupport.get_playground_path():
@@ -95,6 +100,7 @@ class test_project(unittest.TestCase):
             )
             self.assertListEqual(all_revisions, dumped_all_revisions)
 
+    @pytest.mark.slow
     def test_for_each_revision(self):
         project = self.get_a_test_project()
         with TestSupport.get_playground_path():
