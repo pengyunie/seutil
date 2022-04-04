@@ -14,7 +14,17 @@ import subprocess
 import typing_inspect
 import yaml
 
-from .BashUtils import BashUtils
+
+def is_obj_record_class(obj: Any) -> bool:
+    return obj is not None \
+           and isinstance(obj, recordclass.mutabletuple) or isinstance(obj, recordclass.dataobject)
+
+
+def is_clz_record_class(clz: Type) -> bool:
+    return clz is not None \
+           and inspect.isclass(clz) \
+           and (issubclass(clz, recordclass.mutabletuple) or issubclass(clz, recordclass.dataobject))
+
 
 
 class IOUtils:
@@ -360,15 +370,20 @@ class IOUtils:
         elif hasattr(obj, cls.JSONFY_ATTR_FIELD_NAME):
             # with jsonfy_attr annotations
             return {attr: cls.jsonfy(getattr(obj, attr)) for attr in getattr(obj, cls.JSONFY_ATTR_FIELD_NAME).keys()}
-        elif isinstance(obj, recordclass.mutabletuple):
+        elif is_obj_record_class(obj):
             # RecordClass
-            return {k: cls.jsonfy(v) for k, v in obj.__dict__.items()}
+            if hasattr(obj, "__dict__"):
+                # Older versions of recordclass
+                return {k: cls.jsonfy(v) for k, v in obj.__dict__.items()}
+            else:
+                # Newer versions of recordclass
+                return {k: cls.jsonfy(getattr(obj, k)) for k in obj.__fields__}
         else:
             # Last effort: toString
             return repr(obj)
 
     @classmethod
-    def dejsonfy(cls, data, clz=None):
+    def dejsonfy(cls, data, clz: Optional[Union[Type, str]] = None):
         """
         Turns a json-compatible data structure to an object of class {@code clz}.
         If {@code clz} is not assigned, the data will be casted to dict or list if possible.
@@ -380,7 +395,6 @@ class IOUtils:
         """
         if isinstance(clz, str):
             clz = pydoc.locate(clz)
-        # end if
 
         if data is None:
             # None value
@@ -406,14 +420,13 @@ class IOUtils:
             for attr, attr_clz in getattr(clz, cls.JSONFY_ATTR_FIELD_NAME).items():
                 if attr in data:
                     setattr(obj, attr, cls.dejsonfy(data[attr], attr_clz))
-            # end for, if
             return obj
-        elif clz is not None and inspect.isclass(clz) and issubclass(clz, recordclass.mutabletuple):
+        elif clz is not None and is_clz_record_class(clz):
             # RecordClass
             field_values = dict()
             for f, t in get_type_hints(clz).items():
-                if f in data:  field_values[f] = cls.dejsonfy(data.get(f), t)
-            # end for
+                if f in data:
+                    field_values[f] = cls.dejsonfy(data.get(f), t)
             return clz(**field_values)
         elif clz is not None and inspect.isclass(clz) and issubclass(clz, Enum):
             # Enum
@@ -424,7 +437,8 @@ class IOUtils:
         else:
             # primitive types / unresolvable things
             if clz is not None:
-                try: return clz(data)
-                except: pass
-            # end if
+                try:
+                    return clz(data)
+                except:
+                    pass
             return data

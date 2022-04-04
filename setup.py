@@ -5,7 +5,7 @@ with open("README.rst", "r") as fh:
 
 setuptools.setup(
     name="seutil",
-    version="0.5.8",
+    version="0.7.1",
     author="Pengyu Nie",
     author_email="prodigy.sov@gmail.com",
     description="Python utilities for SE research",
@@ -14,17 +14,20 @@ setuptools.setup(
     url="https://github.com/pengyunie/seutil",
     packages=setuptools.find_packages(exclude=["tests"]),
     classifiers=[
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: POSIX :: Linux",
     ],
     install_requires=[
+        "ijson~=3.1.4",
+        "jsonargparse[all]>=4.1.4,<4.6.0",
+        "numpy>=1.14.4",
         "PyGitHub>=1.40",
         "PyYAML>=5.1",
-        "ijson~=3.1.1",
-        "numpy>=1.14.4",
         "recordclass>=0.11.1",
+        "tqdm>=4.62.3,<4.64.0",
         "typing_inspect>=0.4.0",
         "unidiff>=0.5.5",
+        "varname>=0.7.1",
     ],
 )
