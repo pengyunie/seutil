@@ -21,4 +21,7 @@ Project ``seutil``
 
 -  latex package: for writing macros and tables for latex documents;
 
+Full documentation can be found at `readthedocs`_.
+
 .. _Anaconda 3: https://www.anaconda.com/distribution/
+.. _readthedocs: https://seutil.readthedocs.io/en/latest/
