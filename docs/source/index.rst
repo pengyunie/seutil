@@ -5,11 +5,12 @@
 
 Welcome to seutil's documentation!
 ==================================
-
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+    :maxdepth: 2
+    :glob:
+    :caption: Code:
 
+    _autogen/*
 
 
 Indices and tables

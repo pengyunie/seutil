@@ -18,3 +18,6 @@ dist: clean
 
 clean:
 	-rm -rf dist/ build/ seutil.egg-info/
+
+docs: clean
+	python -m sphinx -b html -W --keep-going docs/source docs/build
