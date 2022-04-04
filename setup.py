@@ -25,7 +25,7 @@ setuptools.setup(
         "PyGitHub>=1.40",
         "PyYAML>=5.1",
         "recordclass>=0.11.1",
-        "tqdm>=4.62.3,<4.64.0",
+        "tqdm>=4.62.3,<4.65.0",
         "typing_inspect>=0.4.0",
         "unidiff>=0.5.5",
         "varname>=0.7.1",
