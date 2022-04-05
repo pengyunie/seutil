@@ -25,4 +25,5 @@ python:
    - requirements: requirements.dev.txt
 
 submodules:
-  exclude: tests
+  exclude:
+  - tests
