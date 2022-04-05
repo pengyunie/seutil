@@ -121,6 +121,7 @@ def rmdir(
 ):
     """
     Removes a directory.
+
     :param path: the name of the directory.
     :param missing_ok: (-f) ignores error if the directory does not exist.
     :param force: (-f) force remove the directory even it's non-empty.
@@ -148,6 +149,7 @@ def rm(
 ):
     """
     Removes a file/directory.
+
     :param path: the name of the file/directory.
     :param missing_ok: (-f) ignores error if the file/directory does not exist.
     :param force: (-rf) force remove the directory even it's not empty.
@@ -169,6 +171,7 @@ def mkdir(
 ):
     """
     Creates a directory.
+
     :param path: the path to the directory.
     :param parents: if True, automatically creates parent directories; otherwise, raise error if any parent is missing.
     :param fresh: if True and if the directory already exists, removes it before creating.
@@ -393,6 +396,7 @@ def deserialize(
     """
     Deserializes some data (with only primitive types, list, dict) to an object with
     proper types.
+
     :param data: the data to be deserialized.
     :param clz: the targeted type of deserialization (or its name); if None, will return
         the data as-is.
