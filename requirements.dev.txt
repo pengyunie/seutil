@@ -1,6 +1,6 @@
 # IMPORTANT: when modifying this file, be sure to update setup.py as well!
 ijson~=3.1.4
-jsonargparse[all]~=4.5.0
+jsonargparse[all]~=4.6.0
 numpy>=1.14.4
 PyGitHub>=1.40
 PyYAML>=5.1
