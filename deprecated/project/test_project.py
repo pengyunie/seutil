@@ -6,7 +6,7 @@ import pytest
 import seutil as su
 from seutil.project import Project
 
-from .TestSupport import TestSupport
+from ...tests.TestSupport import TestSupport
 
 
 class test_project(unittest.TestCase):
