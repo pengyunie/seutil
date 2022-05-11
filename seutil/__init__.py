@@ -5,7 +5,7 @@ module_root = os.path.dirname(os.path.realpath(__file__)) + "/.."
 if module_root not in sys.path:
     sys.path.insert(0, module_root)
 
-from . import bash, debug, io, log, pbar
+from . import arg, bash, debug, io, log, pbar
 from .BashUtils import BashUtils
 from .GitHubUtils import GitHubUtils
 from .IOUtils import IOUtils
