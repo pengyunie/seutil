@@ -4,18 +4,19 @@ from typing import List, Optional, Set
 
 class Lattice(GraphLikeADT):
     """
-    Lattice: directed, acyclic, connected graph.
+    Lattice: directed, acyclic, potentially connected graph.
     """
 
-    def __init__(self):
+    def __init__(self, connected: bool = False):
         super().__init__(directed=True)
+        self.connected = connected
         self.entry_nodes: Set[Node] = set()
         self.exit_nodes: Set[Node] = set()
 
     def check_invariants(self) -> bool:
         if self.g.vcount() == 0:
             return True
-        return self.g.is_dag() and self.g.is_connected("weak")
+        return self.g.is_dag() and ((not self.connected) or self.g.is_connected("weak"))
 
     def add_node(
         self,
