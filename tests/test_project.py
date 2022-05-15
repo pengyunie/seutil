@@ -214,3 +214,12 @@ def test_get_cur_revision(local_gitgame_repo: su.project.Project, tmp_path: Path
         local_gitgame_repo.get_cur_revision()
         == "d851edda3009332dd5d3f8f949a102f279dad809"
     )
+
+
+def test_get_revisions_lattice(local_gitgame_repo: su.project.Project, tmp_path: Path):
+    local_gitgame_repo.clone(tmp_path)
+    assert (tmp_path / "pengyunie_git-game").exists()
+
+    lattice = local_gitgame_repo.get_revisions_lattice()
+    assert lattice.ncount() == 6
+    assert lattice.ecount() == 5

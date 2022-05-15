@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 from tqdm import tqdm
 
-from . import bash, io, log
+from . import bash, io, log, ds
 
 logger = log.get_logger(__name__, log.INFO)
 
@@ -179,14 +179,27 @@ class Project:
         """
         self.require_cloned("get_cur_revision")
         with io.cd(self._dir):
-            revision = bash.run("git log --pretty='%H' -1", 0).stdout.strip()
+            revision = bash.run("git rev-list -1 HEAD", 0).stdout.strip()
         return revision
 
-    def get_revisions_lattice(self):
+    def get_revisions_lattice(self) -> ds.lattice.Lattice:
         """
-        TODO: Gets the revisions lattice of the project, ending at the current revision.
+        Gets the revisions lattice of the project, ending at the current revision.
         """
-        raise NotImplementedError()
+        self.require_cloned("get_revisions_lattice")
+        with io.cd(self._dir):
+            revisions = bash.run(
+                "git rev-list HEAD --topo-order --reverse --parents", 0
+            ).stdout.strip()
+        revision2node = {}
+        lattice = ds.lattice.Lattice()
+        for line in revisions.splitlines():
+            parts = line.split()
+            revision = parts[0]
+            node = lattice.add_node(parents=[revision2node[p] for p in parts[1:]])
+            revision2node[revision] = node
+            node["revision"] = revision
+        return lattice
 
     def for_each_revision(
         self,
