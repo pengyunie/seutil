@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 import seutil as su
 
-resources_dir = Path(__file__).parent.parent / "test-subjects"
+resources_dir = Path(__file__).parent.parent / "resources"
 
 
 # we use the https://github.com/git-game/git-game as the test subject for the project module; I checkpointed the state of the repository on 2022-05-11 --- forked to my github account, and also downloaded+compressed as a tgz.
