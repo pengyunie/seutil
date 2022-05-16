@@ -33,8 +33,7 @@ function prepare_conda_env() {
         conda activate $env_name
 
         # Install libraries
-        pip install -r requirements.txt
-        pip install -r requirements.dev.txt
+        pip install -e .[dev]
 }
 
 

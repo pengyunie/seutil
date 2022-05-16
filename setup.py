@@ -20,7 +20,9 @@ setuptools.setup(
     ],
     install_requires=[
         "ijson~=3.1.4",
+        "igraph>=0.9.10",
         "jsonargparse[all]>=4.1.4,<4.8.0",
+        "lazy-import>=0.2.2",
         "numpy>=1.14.4",
         "PyGitHub>=1.40",
         "PyYAML>=5.1",
@@ -30,4 +32,5 @@ setuptools.setup(
         "unidiff>=0.5.5",
         "varname>=0.7.1",
     ],
+    extras_require={"dev": ["pytest", "flake8", "black"]},
 )

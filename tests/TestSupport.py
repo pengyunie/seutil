@@ -10,7 +10,7 @@ class TestSupport:
     """
     THIS_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
     PROJECT_DIR = THIS_DIR.parent
-    SUBJECTS_DIR = PROJECT_DIR / "test-subjects"
+    SUBJECTS_DIR = PROJECT_DIR / "resources"
 
     class get_playground_path:
         SUBJECTS_DIR = None

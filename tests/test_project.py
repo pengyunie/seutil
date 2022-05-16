@@ -1,132 +1,225 @@
-import unittest
+import os
 from pathlib import Path
-from typing import *
 
+import pytest
 import seutil as su
-from seutil.project import Project
-from .TestSupport import TestSupport
+
+resources_dir = Path(__file__).parent.parent / "resources"
 
 
-class test_project(unittest.TestCase):
+# we use the https://github.com/git-game/git-game as the test subject for the project module; I checkpointed the state of the repository on 2022-05-11 --- forked to my github account, and also downloaded+compressed as a tgz.
 
-    SAMPLE_PROJECTS_PATH = (
-        TestSupport.SUBJECTS_DIR / "projects" / "sample-projects.json"
+
+@pytest.fixture
+def local_gitgame_repo(tmp_path: Path):
+    """The git-game repo comes with this project as a test subject."""
+    os.chdir(tmp_path)
+    git_game_tgz = resources_dir / "git-game.git.tgz"
+    su.bash.run(f"tar -xzf {git_game_tgz}", 0)
+
+    return su.project.Project(
+        full_name="pengyunie_git-game",
+        clone_url=f"file://{tmp_path.absolute()}/git-game.git",
     )
 
-    @classmethod
-    def load_sample_projects_database(cls) -> List[dict]:
-        return su.io.load(cls.SAMPLE_PROJECTS_PATH)
 
-    @classmethod
-    def get_a_test_project(cls) -> Project:
-        sample_project_database = cls.load_sample_projects_database()[:1]
-        project = Project.from_projects_database(sample_project_database)[0]
-        return project
+@pytest.fixture
+def remote_gitgame_repo():
+    """The git-game repo on github."""
+    return su.project.Project(
+        full_name="pengyunie_git-game",
+        clone_url=f"https://github.com/pengyunie/git-game.git",
+    )
 
-    @classmethod
-    def get_test_projects(cls) -> List[Project]:
-        sample_projects_database = cls.load_sample_projects_database()
-        projects = Project.from_projects_database(sample_projects_database)
-        return projects
 
-    def test_clone_and_remove(self):
-        project = self.get_a_test_project()
-        with TestSupport.get_playground_path():
-            Project.set_downloads_dir(Path.cwd() / "_downloads")
+def test_clone_local(local_gitgame_repo: su.project.Project, tmp_path: Path):
+    local_gitgame_repo.clone(tmp_path)
+    assert (tmp_path / "pengyunie_git-game").exists()
+    assert (tmp_path / "pengyunie_git-game" / ".git").exists()
+    assert local_gitgame_repo.dir == tmp_path / "pengyunie_git-game"
 
-            # Clone
-            project.clone()
-            expected_project_dir = (
-                Path.cwd() / "_downloads/{}".format(project.full_name)
-            ).absolute()
-            self.assertEqual(str(expected_project_dir), str(project.checkout_dir))
-            self.assertTrue(expected_project_dir.is_dir())
-            self.assertTrue((expected_project_dir / ".git").is_dir())
 
-            # Remove
-            project.remove()
-            self.assertIsNone(project.checkout_dir)
-            self.assertFalse(expected_project_dir.is_dir())
+def test_clone_local_name(local_gitgame_repo: su.project.Project, tmp_path: Path):
+    local_gitgame_repo.clone(tmp_path, name="aaa")
+    assert (tmp_path / "aaa").exists()
+    assert (tmp_path / "aaa" / ".git").exists()
+    assert local_gitgame_repo.dir == tmp_path / "aaa"
 
-    def test_checkout_and_revisions(self):
-        project = self.get_a_test_project()
-        with TestSupport.get_playground_path():
-            Project.set_downloads_dir(Path.cwd() / "_downloads")
 
-            # Clone
-            project.clone()
-            expected_project_dir = (
-                Path.cwd() / "_downloads/{}".format(project.full_name)
-            ).absolute()
+def test_clone_local_exists_ignore(
+    local_gitgame_repo: su.project.Project, tmp_path: Path
+):
+    local_gitgame_repo.clone(tmp_path)
+    assert (tmp_path / "pengyunie_git-game").exists()
 
-            # Get all revisions
-            all_revisions = project.get_all_revisions()
-            self.assertTrue(len(all_revisions) > 0)
-            for revision in all_revisions:
-                self.assertTrue(revision != "")
+    local_gitgame_repo.clone(tmp_path, exists="ignore")
+    assert (tmp_path / "pengyunie_git-game").exists()
+    assert (tmp_path / "pengyunie_git-game" / ".git").exists()
+    assert local_gitgame_repo.dir == tmp_path / "pengyunie_git-game"
 
-            if len(all_revisions) < 2:
-                print(
-                    "Too few revisions (<2) to do testing on checkout. Will skip that."
-                )
-                return
 
-            # Checkout to some previous revision
-            revision = all_revisions[len(all_revisions) // 2 - 1]
-            project.checkout(revision)
-            self.assertEqual(revision, project.revision)
+def test_clone_local_exists_remove(
+    local_gitgame_repo: su.project.Project, tmp_path: Path
+):
+    local_gitgame_repo.clone(tmp_path)
+    assert (tmp_path / "pengyunie_git-game").exists()
+    # touch a random file in the cloned directory, to test if it is later removed
+    su.io.dump(local_gitgame_repo.dir / "random.txt", "abc", su.io.Fmt.txt)
+    assert (local_gitgame_repo.dir / "random.txt").exists()
 
-    def test_dump_all_revisions(self):
-        project = self.get_a_test_project()
-        with TestSupport.get_playground_path():
-            Project.set_downloads_dir(Path.cwd() / "_downloads")
-            Project.set_results_dir(Path.cwd() / "_results")
+    local_gitgame_repo.clone(tmp_path, exists="remove")
+    assert (tmp_path / "pengyunie_git-game").exists()
+    assert (tmp_path / "pengyunie_git-game" / ".git").exists()
+    assert local_gitgame_repo.dir == tmp_path / "pengyunie_git-game"
+    assert not (local_gitgame_repo.dir / "random.txt").exists()
 
-            # Clone
-            project.clone()
 
-            # Set up results
-            project.init_results()
+def test_clone_local_exists_pull(
+    local_gitgame_repo: su.project.Project, tmp_path: Path
+):
+    local_gitgame_repo.clone(tmp_path)
+    assert (tmp_path / "pengyunie_git-game").exists()
+    assert (
+        local_gitgame_repo.get_cur_revision()
+        == "d851edda3009332dd5d3f8f949a102f279dad809"
+    )
+    # undo the last commit, to test if it is later pulled back
+    with su.io.cd(local_gitgame_repo.dir):
+        su.bash.run("git reset --hard HEAD~1", 0)
+    assert (
+        local_gitgame_repo.get_cur_revision()
+        == "7c8c3ccc2f4bb118a657f1f7a7ab4e163d1b7a30"
+    )
 
-            # Get all revisions, compare with dumped version
-            all_revisions = project.get_all_revisions()
-            dumped_all_revisions = project.results.load_meta_result(
-                "all_revisions.json"
-            )
-            self.assertListEqual(all_revisions, dumped_all_revisions)
+    local_gitgame_repo.clone(tmp_path, exists="pull")
+    assert (tmp_path / "pengyunie_git-game").exists()
+    assert (tmp_path / "pengyunie_git-game" / ".git").exists()
+    assert local_gitgame_repo.dir == tmp_path / "pengyunie_git-game"
+    with su.io.cd(local_gitgame_repo.dir):
+        su.bash.run("git checkout origin/master", 0)
+    assert (
+        local_gitgame_repo.get_cur_revision()
+        == "d851edda3009332dd5d3f8f949a102f279dad809"
+    )
 
-    def test_for_each_revision(self):
-        project = self.get_a_test_project()
-        with TestSupport.get_playground_path():
-            Project.set_downloads_dir(Path.cwd() / "_downloads")
-            Project.set_results_dir(Path.cwd() / "_results")
 
-            # Clone
-            project.clone()
+def test_clone_local_exists_error(
+    local_gitgame_repo: su.project.Project, tmp_path: Path
+):
+    local_gitgame_repo.clone(tmp_path)
+    assert (tmp_path / "pengyunie_git-game").exists()
 
-            # Set up results
-            project.init_results()
+    with pytest.raises(RuntimeError):
+        local_gitgame_repo.clone(tmp_path, exists="error")
 
-            # Get all revisions, compare with dumped version
-            all_revisions = project.get_all_revisions()
 
-            if len(all_revisions) < 10:
-                print(
-                    "Too few revisions (<10) to do testing on for_each_revision. Will skip that."
-                )
-                return
+@pytest.mark.slow  # TODO: mark this item as something like "need internet" instead
+def test_clone_remote(remote_gitgame_repo: su.project.Project, tmp_path: Path):
+    remote_gitgame_repo.clone(tmp_path)
+    assert (tmp_path / "pengyunie_git-game").exists()
+    assert (tmp_path / "pengyunie_git-game" / ".git").exists()
+    assert remote_gitgame_repo.dir == tmp_path / "pengyunie_git-game"
 
-            # For each revision, count number of files
-            project.for_each_revision(
-                lambda p, r: p.results.dump_revision_result(
-                    r, "count_files.json", su.bash.run("git ls-files | wc -l").stdout
-                ),
-                all_revisions[-10:],
-            )
-            project.for_each_revision(
-                lambda p, r: self.assertIsNotNone(
-                    p.results.load_revision_result(r, "count_files.json")
-                ),
-                all_revisions[-10:],
-                is_auto_checkout=False,
-            )
+
+# for the remaining tests about the operations after cloning, it does not matter if the project is from local or online
+
+
+def test_set_cloned_dir(local_gitgame_repo: su.project.Project, tmp_path: Path):
+    local_gitgame_repo.clone(tmp_path)
+    assert (tmp_path / "pengyunie_git-game").exists()
+    assert (tmp_path / "pengyunie_git-game" / ".git").exists()
+    assert local_gitgame_repo.dir == tmp_path / "pengyunie_git-game"
+
+    su.bash.run(
+        f"mv {tmp_path / 'pengyunie_git-game'} {tmp_path / 'pengyunie_git-game2'}", 0
+    )
+    assert local_gitgame_repo.dir == tmp_path / "pengyunie_git-game"
+
+    local_gitgame_repo.set_cloned_dir(tmp_path / "pengyunie_git-game2")
+    assert local_gitgame_repo.dir == tmp_path / "pengyunie_git-game2"
+
+
+def test_remove(local_gitgame_repo: su.project.Project, tmp_path: Path):
+    local_gitgame_repo.clone(tmp_path)
+    assert local_gitgame_repo.dir == tmp_path / "pengyunie_git-game"
+
+    local_gitgame_repo.remove()
+    assert not (tmp_path / "pengyunie_git-game").exists()
+    with pytest.raises(RuntimeError):
+        local_gitgame_repo.dir
+
+
+def test_fetch(local_gitgame_repo: su.project.Project, tmp_path: Path):
+    local_gitgame_repo.clone(tmp_path)
+    assert (tmp_path / "pengyunie_git-game").exists()
+    assert (
+        local_gitgame_repo.get_cur_revision()
+        == "d851edda3009332dd5d3f8f949a102f279dad809"
+    )
+    # undo the last commit, to test if it is later pulled back
+    with su.io.cd(local_gitgame_repo.dir):
+        su.bash.run("git reset --hard HEAD~1", 0)
+    assert (
+        local_gitgame_repo.get_cur_revision()
+        == "7c8c3ccc2f4bb118a657f1f7a7ab4e163d1b7a30"
+    )
+
+    local_gitgame_repo.fetch()
+    with su.io.cd(local_gitgame_repo.dir):
+        su.bash.run("git checkout origin/master", 0)
+    assert (
+        local_gitgame_repo.get_cur_revision()
+        == "d851edda3009332dd5d3f8f949a102f279dad809"
+    )
+
+
+def test_checkout(local_gitgame_repo: su.project.Project, tmp_path: Path):
+    local_gitgame_repo.clone(tmp_path)
+    assert (tmp_path / "pengyunie_git-game").exists()
+    assert (
+        local_gitgame_repo.get_cur_revision()
+        == "d851edda3009332dd5d3f8f949a102f279dad809"
+    )
+    local_gitgame_repo.checkout("7c8c3ccc2f4bb118a657f1f7a7ab4e163d1b7a30")
+    assert (
+        local_gitgame_repo.get_cur_revision()
+        == "7c8c3ccc2f4bb118a657f1f7a7ab4e163d1b7a30"
+    )
+
+
+def test_checkout_forced(local_gitgame_repo: su.project.Project, tmp_path: Path):
+    local_gitgame_repo.clone(tmp_path)
+    assert (tmp_path / "pengyunie_git-game").exists()
+    assert (
+        local_gitgame_repo.get_cur_revision()
+        == "d851edda3009332dd5d3f8f949a102f279dad809"
+    )
+    # modify the README so that normal checkout should fail
+    su.io.dump(local_gitgame_repo.dir / "README.md", "modified", su.io.Fmt.txt)
+    with pytest.raises(su.bash.BashError):
+        local_gitgame_repo.checkout("7c8c3ccc2f4bb118a657f1f7a7ab4e163d1b7a30")
+
+    # a forced checkout should do it
+    local_gitgame_repo.checkout("7c8c3ccc2f4bb118a657f1f7a7ab4e163d1b7a30", forced=True)
+    assert (
+        local_gitgame_repo.get_cur_revision()
+        == "7c8c3ccc2f4bb118a657f1f7a7ab4e163d1b7a30"
+    )
+
+
+def test_get_cur_revision(local_gitgame_repo: su.project.Project, tmp_path: Path):
+    local_gitgame_repo.clone(tmp_path)
+    assert (tmp_path / "pengyunie_git-game").exists()
+    assert (
+        local_gitgame_repo.get_cur_revision()
+        == "d851edda3009332dd5d3f8f949a102f279dad809"
+    )
+
+
+def test_get_revisions_lattice(local_gitgame_repo: su.project.Project, tmp_path: Path):
+    local_gitgame_repo.clone(tmp_path)
+    assert (tmp_path / "pengyunie_git-game").exists()
+
+    lattice = local_gitgame_repo.get_revisions_lattice()
+    assert lattice.ncount() == 6
+    assert lattice.ecount() == 5
