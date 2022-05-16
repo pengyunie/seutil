@@ -32,4 +32,5 @@ setuptools.setup(
         "unidiff>=0.5.5",
         "varname>=0.7.1",
     ],
+    extras_require={"dev": ["pytest", "flake8", "black"]},
 )
