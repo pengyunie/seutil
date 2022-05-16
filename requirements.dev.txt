@@ -1,1 +1,14 @@
+# IMPORTANT: when modifying this file, be sure to update setup.py as well!
+ijson~=3.1.4
+jsonargparse[all]~=4.7.3
+numpy>=1.14.4
+PyGitHub>=1.40
+PyYAML>=5.1
+recordclass>=0.11.1
+tqdm~=4.64.0
+typing_inspect>=0.4.0
+unidiff>=0.5.5
+varname>=0.7.1
 pytest
+sphinx>=3.03
+sphinx_rtd_theme>=0.4.3
