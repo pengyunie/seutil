@@ -8,3 +8,4 @@ from .graph_common import (Edge, EdgeExistedError, InvariantError, Node,
                            NodeIndexError)
 
 lattice = lazy_import.lazy_module("seutil.ds.lattice")
+trie = lazy_import.lazy_module("seutil.ds.trie")
