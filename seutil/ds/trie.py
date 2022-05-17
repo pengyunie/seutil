@@ -13,7 +13,7 @@ class Trie(Generic[TElem, TValue]):
 
     The value can be any object; the default `True` value is ok if the value is not important and only containment checking is needed.
 
-    Using the default parameters of `empty_elem`, `join_op`, and `value` results in a classical trie tree for words.
+    Using the default parameters of `empty_elem`, `join_func`, and `value` results in a classical trie tree for words.
 
     :param empty_elem: the empty element of this trie; by default empty string.
     :param join_func: the function to join a sequence of elements to a thing, used when reporting the sequence during traversing the trie; by default `"".join`.
@@ -24,13 +24,13 @@ class Trie(Generic[TElem, TValue]):
     def __init__(
         self,
         empty_elem: TElem = "",
-        join_op: Optional[Callable[[Iterable[TElem]], Any]] = lambda x: "".join(x),
+        join_func: Optional[Callable[[Iterable[TElem]], Any]] = lambda x: "".join(x),
     ):
-        if join_op is None:
-            join_op = lambda x: x
+        if join_func is None:
+            join_func = lambda x: x
         self.empty_elem = empty_elem
         self.data = {}
-        self.join_op = join_op
+        self.join_func = join_func
 
     def to_tree(self):
         """
@@ -161,7 +161,7 @@ class Trie(Generic[TElem, TValue]):
         """
         Returns a shallow copy of the trie.
         """
-        new_trie = Trie(self.empty_elem, self.join_op)
+        new_trie = Trie(self.empty_elem, self.join_func)
 
         def _copy(cur):
             new_cur = {}
@@ -179,7 +179,7 @@ class Trie(Generic[TElem, TValue]):
         """
         Returns a deep copy of the trie.
         """
-        new_trie = Trie(self.empty_elem, self.join_op)
+        new_trie = Trie(self.empty_elem, self.join_func)
         new_trie.data = copy.deepcopy(self.data, memo)
         return new_trie
 
@@ -220,9 +220,9 @@ class Trie(Generic[TElem, TValue]):
         cur = self.data
         for c in prefix:
             if c not in cur:
-                return Trie(self.empty_elem, self.join_op)
+                return Trie(self.empty_elem, self.join_func)
             cur = cur[c]
-        new_trie = Trie(self.empty_elem, self.join_op)
+        new_trie = Trie(self.empty_elem, self.join_func)
         new_trie.data = cur
         return new_trie
 
@@ -234,7 +234,7 @@ class Trie(Generic[TElem, TValue]):
         :return: the subtrie, which does not share structure, but shares values with the original trie (use `__deepcopy__` to get a deep copy).
         """
         cur = self.data
-        new_trie = Trie(self.empty_elem, self.join_op)
+        new_trie = Trie(self.empty_elem, self.join_func)
         new_cur = new_trie.data
         for c in key:
             if self.empty_elem in cur:
@@ -255,7 +255,7 @@ class Trie(Generic[TElem, TValue]):
         :param elems: the elements that the subtrie can use.
         :return: the subtrie, which does not share structure, but shares values with the original trie (use `__deepcopy__` to get a deep copy).
         """
-        new_trie = Trie(self.empty_elem, self.join_op)
+        new_trie = Trie(self.empty_elem, self.join_func)
         queue = [self.data, new_trie.data]
         while len(queue) > 0:
             cur, new_cur = queue.pop(0)
@@ -276,7 +276,7 @@ class Trie(Generic[TElem, TValue]):
         """
         for k, v in self.data.items():
             if k != self.empty_elem:
-                subtrie = Trie(self.empty_elem, self.join_op)
+                subtrie = Trie(self.empty_elem, self.join_func)
                 subtrie.data = v
                 yield k, subtrie
 
@@ -286,7 +286,7 @@ class Trie(Generic[TElem, TValue]):
             prefix, cur = queue.pop()
             for k, v in cur.items():
                 if k == self.empty_elem:
-                    yield (self.join_op(prefix), v)
+                    yield (self.join_func(prefix), v)
                 else:
                     queue.append((prefix + [k], v))
 
@@ -296,7 +296,7 @@ class Trie(Generic[TElem, TValue]):
             prefix, cur = queue.pop()
             for k, v in cur.items():
                 if k == self.empty_elem:
-                    yield self.join_op(prefix)
+                    yield self.join_func(prefix)
                 else:
                     queue.append((prefix + [k], v))
 
@@ -339,9 +339,9 @@ class Trie(Generic[TElem, TValue]):
             if ((not self_has_value) or (self.empty_elem in self_node)) and (
                 (not other_has_value) or (other.empty_elem in other_node)
             ):
-                self_subtrie = Trie(self.empty_elem, self.join_op)
+                self_subtrie = Trie(self.empty_elem, self.join_func)
                 self_subtrie.data = self_node
-                other_subtrie = Trie(other.empty_elem, other.join_op)
+                other_subtrie = Trie(other.empty_elem, other.join_func)
                 other_subtrie.data = other_node
                 yield self_subtrie, other_subtrie
 
