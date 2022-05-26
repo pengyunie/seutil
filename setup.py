@@ -21,7 +21,7 @@ setuptools.setup(
     install_requires=[
         "ijson~=3.1.4",
         "igraph>=0.9.10",
-        "jsonargparse[all]>=4.1.4,<4.8.0",
+        "jsonargparse[all]>=4.1.4,<4.9.0",
         "lazy-import>=0.2.2",
         "numpy>=1.14.4",
         "PyGitHub>=1.40",
