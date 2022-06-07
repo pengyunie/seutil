@@ -89,11 +89,11 @@ class Trie(Generic[TElem, TValue]):
     def __setitem__(self, key: Iterable[TElem], value: TValue):
         self.set(key, value, exist_ok=True)
 
-    def update(
+    def compute(
         self, key: Iterable[TElem], update_func: Callable[[Optional[TValue]], TValue]
     ) -> TValue:
         """
-        Updates the value of the given key (potentially add/remove the key).
+        Computes the value of the given key (potentially add/remove a key-value pair).
         Faster than get+set by avoiding searching for the key twice.
         :param key: the key to update.
         :param update_func: the function to update the value, which takes as input the old value (or `Trie.MISSING` if there was no old value), and returns the new value (or `Trie.MISSING` to indicate removing the key from trie).
