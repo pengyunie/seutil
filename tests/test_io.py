@@ -1,4 +1,5 @@
 import collections
+import dataclasses
 import unittest
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple
@@ -193,6 +194,18 @@ class ExampleRecordClass(RecordClass):
     k: Optional[ExampleNamedTuple2] = None
 
 
+@dataclasses.dataclass
+class ExampleDataclass:
+    ell: int
+    m: float
+    n: Dict[str, float] = None
+    o: Optional[ExampleNamedTuple2] = None
+    p: str = dataclasses.field(init=False)
+
+    def __post_init__(self):
+        self.p = str(self.ell) + str(self.m)
+
+
 class test_io_dump_load(unittest.TestCase):
 
     def setUp(self) -> None:
@@ -217,7 +230,11 @@ class test_io_dump_load(unittest.TestCase):
         ExampleNamedTuple1(a=2, b=0.3, c=(1, 2, 3)),
         ExampleNamedTuple2(e=99, f=[3, 5], g=42.0),
         ExampleRecordClass(h=4, i=0.5, j={"a": 4, "b": 6.0}, k=None),
+        ExampleDataclass(ell=4, m=0.5, n={"a": 4, "b": 6.0}, o=None),
     ]
+    # override non-init field to ensure the # overridden value is
+    # actually loaded rather than recomputed
+    JSON_INPUTS[-1].p = "overridden"
 
     YAML_INPUTS: List[Any] = [
         {34: 56},
