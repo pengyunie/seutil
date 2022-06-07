@@ -1,3 +1,5 @@
+import copy
+
 import pytest
 import seutil as su
 
@@ -91,3 +93,40 @@ def test_trie_has_key():
     trie.set("key1", 123)
     assert "key1" in trie
     assert "key2" not in trie
+
+
+def test_trie_has_prefix():
+    trie = su.ds.trie.Trie()
+    trie.set("key1", 123)
+    assert trie.has_prefix("ke")
+    assert not trie.has_prefix("what")
+
+
+def test_trie_copy():
+    trie = su.ds.trie.Trie()
+    trie.set("key1", 123)
+    trie.set("mutable1", [4, 5, 6])
+    trie_copy = copy.copy(trie)
+    assert trie_copy["key1"] == 123
+    assert trie_copy["mutable1"] == [4, 5, 6]
+
+    trie.set("key2", 456)
+    assert "key2" not in trie_copy
+
+    trie["mutable1"].append(7)
+    assert trie_copy["mutable1"] == [4, 5, 6, 7]
+
+
+def test_trie_deepcopy():
+    trie = su.ds.trie.Trie()
+    trie.set("key1", 123)
+    trie.set("mutable1", [4, 5, 6])
+    trie_copy = copy.deepcopy(trie)
+    assert trie_copy["key1"] == 123
+    assert trie_copy["mutable1"] == [4, 5, 6]
+
+    trie.set("key2", 456)
+    assert "key2" not in trie_copy
+
+    trie["mutable1"].append(7)
+    assert trie_copy["mutable1"] == [4, 5, 6]
