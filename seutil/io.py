@@ -565,7 +565,11 @@ def deserialize(
         field_values = {}
         for f in clz._fields:
             if hasattr(clz, "_field_types"):
+                # for Python <3.9
                 t = clz._field_types.get(f)
+            elif hasattr(clz, '__annotations__'):
+                # for Python >=3.9
+                t = clz.__annotations__.get(f)
             else:
                 t = None
             if f in data:
