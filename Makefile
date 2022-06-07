@@ -11,6 +11,7 @@ install:
 	pip install .
 
 test:
+	pip install .[dev]
 	pytest
 
 dist: clean
