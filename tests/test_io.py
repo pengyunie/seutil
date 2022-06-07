@@ -1,4 +1,5 @@
 import collections
+import dataclasses
 import unittest
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple
@@ -193,6 +194,23 @@ class ExampleRecordClass(RecordClass):
     k: Optional[ExampleNamedTuple2] = None
 
 
+@dataclasses.dataclass
+class ExampleInnerDataclass:
+    q: int
+
+    def serialize(self) -> str:
+        return str(self.q)
+
+    @classmethod
+    def deserialize(cls, data: str) -> 'ExampleInnerDataclass':
+        return ExampleInnerDataclass(int(data))
+
+
+@dataclasses.dataclass
+class ExampleOuterDataclass:
+    r : ExampleInnerDataclass
+
+
 class test_io_dump_load(unittest.TestCase):
 
     def setUp(self) -> None:
@@ -217,6 +235,7 @@ class test_io_dump_load(unittest.TestCase):
         ExampleNamedTuple1(a=2, b=0.3, c=(1, 2, 3)),
         ExampleNamedTuple2(e=99, f=[3, 5], g=42.0),
         ExampleRecordClass(h=4, i=0.5, j={"a": 4, "b": 6.0}, k=None),
+        ExampleOuterDataclass(ExampleInnerDataclass(3))
     ]
 
     YAML_INPUTS: List[Any] = [

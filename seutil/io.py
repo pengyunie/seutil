@@ -344,7 +344,7 @@ def serialize(
         return {k: serialize(v, fmt) for k, v in obj._asdict().items()}
     elif dataclasses.is_dataclass(obj):
         # Dataclass
-        return {k: serialize(v, fmt) for k, v in dataclasses.asdict(obj).items()}
+        return {f.name: serialize(getattr(obj, f.name), fmt) for f in dataclasses.fields(obj)}
     elif isinstance(obj, (list, set, tuple)):
         # List-like: uniform to list; recursively serialize content
         return [serialize(item, fmt) for item in obj]
