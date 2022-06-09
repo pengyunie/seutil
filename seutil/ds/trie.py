@@ -260,7 +260,7 @@ class Trie(Generic[TElem, TValue]):
         :return: the subtrie, which does not share structure, but shares values with the original trie (use `__deepcopy__` to get a deep copy).
         """
         new_trie = Trie(self.empty_elem, self.join_func)
-        queue = [self.data, new_trie.data]
+        queue = [(self.data, new_trie.data)]
         while len(queue) > 0:
             cur, new_cur = queue.pop(0)
             if self.empty_elem in cur:
