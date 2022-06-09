@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -239,3 +240,124 @@ def test_from_github_url():
 def test_from_github_url_invalid():
     with pytest.raises(ValueError):
         su.project.Project.from_github_url("http://github.com/pengyunie/seutil")
+
+
+def test_for_each_revision(local_gitgame_repo: su.project.Project, tmp_path: Path):
+    local_gitgame_repo.clone(tmp_path)
+
+    lattice = local_gitgame_repo.get_revisions_lattice()
+    revisions = [n["revision"] for n in lattice.nodes()]
+
+    def action(p: su.project.Project, r: str):
+        return (p.get_cur_revision(), su.bash.run("pwd").stdout.strip())
+
+    ret = local_gitgame_repo.for_each_revision(action, revisions)
+    assert [x[0] for x in ret] == revisions
+    assert [Path(x[1]) for x in ret] == [local_gitgame_repo.dir] * len(revisions)
+
+
+def test_for_each_revision_no_auto_checkout(
+    local_gitgame_repo: su.project.Project, tmp_path: Path
+):
+    local_gitgame_repo.clone(tmp_path)
+
+    lattice = local_gitgame_repo.get_revisions_lattice()
+    revisions = [n["revision"] for n in lattice.nodes()]
+    local_gitgame_repo.checkout(revisions[0])
+
+    def action(p: su.project.Project, r: str):
+        return (p.get_cur_revision(), su.bash.run("pwd").stdout.strip())
+
+    ret = local_gitgame_repo.for_each_revision(action, revisions, auto_checkout=False)
+    assert [x[0] for x in ret] == [revisions[0]] * len(revisions)
+    assert [Path(x[1]) for x in ret] == [local_gitgame_repo.dir] * len(revisions)
+
+
+def test_for_each_revision_errors_ignore(
+    local_gitgame_repo: su.project.Project, tmp_path: Path
+):
+    local_gitgame_repo.clone(tmp_path)
+
+    lattice = local_gitgame_repo.get_revisions_lattice()
+    revisions = [n["revision"] for n in lattice.nodes()]
+
+    def action(p: su.project.Project, r: str):
+        nonlocal revisions
+        if r == revisions[0]:
+            raise Exception("error")
+        return (p.get_cur_revision(), su.bash.run("pwd").stdout.strip())
+
+    ret = local_gitgame_repo.for_each_revision(action, revisions, errors="ignore")
+    assert [x[0] for x in ret] == revisions[1:]
+    assert [Path(x[1]) for x in ret] == [local_gitgame_repo.dir] * (len(revisions) - 1)
+
+
+def test_for_each_revision_errors_warning(
+    local_gitgame_repo: su.project.Project,
+    tmp_path: Path,
+    recwarn: pytest.WarningsRecorder,
+):
+    local_gitgame_repo.clone(tmp_path)
+
+    lattice = local_gitgame_repo.get_revisions_lattice()
+    revisions = [n["revision"] for n in lattice.nodes()]
+
+    def action(p: su.project.Project, r: str):
+        nonlocal revisions
+        if r == revisions[0]:
+            raise Exception("error")
+        return (p.get_cur_revision(), su.bash.run("pwd").stdout.strip())
+
+    recwarn.clear()
+    ret = local_gitgame_repo.for_each_revision(action, revisions, errors="warning")
+    assert len(recwarn.list) == 1
+    assert [x[0] for x in ret] == revisions[1:]
+    assert [Path(x[1]) for x in ret] == [local_gitgame_repo.dir] * (len(revisions) - 1)
+
+
+def test_for_each_revision_errors_collate(
+    local_gitgame_repo: su.project.Project,
+    tmp_path: Path,
+    recwarn: pytest.WarningsRecorder,
+):
+    local_gitgame_repo.clone(tmp_path)
+
+    lattice = local_gitgame_repo.get_revisions_lattice()
+    revisions = [n["revision"] for n in lattice.nodes()]
+    assert len(revisions) >= 2
+
+    def action(p: su.project.Project, r: str):
+        nonlocal revisions
+        if r == revisions[0] or r == revisions[-1]:
+            raise Exception("error")
+        return (p.get_cur_revision(), su.bash.run("pwd").stdout.strip())
+
+    recwarn.clear()
+    with pytest.raises(su.project.CollatedErrors) as exc_info:
+        local_gitgame_repo.for_each_revision(action, revisions, errors="collate")
+
+    assert exc_info.value.contexts == [revisions[0], revisions[-1]]
+    assert len(recwarn.list) == 2
+
+
+def test_for_each_revision_errors_error(
+    local_gitgame_repo: su.project.Project, tmp_path: Path
+):
+    local_gitgame_repo.clone(tmp_path)
+
+    lattice = local_gitgame_repo.get_revisions_lattice()
+    revisions = [n["revision"] for n in lattice.nodes()]
+    assert len(revisions) >= 2
+
+    def action(p: su.project.Project, r: str):
+        nonlocal revisions
+        if r == revisions[0]:
+            pass
+        else:
+            raise Exception(r)
+        return (p.get_cur_revision(), su.bash.run("pwd").stdout.strip())
+
+    with pytest.raises(Exception) as exc_info:
+        local_gitgame_repo.for_each_revision(action, revisions, errors="error")
+
+    assert exc_info.value.args[0] == revisions[1]
