@@ -246,7 +246,7 @@ class test_io_dump_load(unittest.TestCase):
         ExampleNamedTuple1(a=2, b=0.3, c=(1, 2, 3)),
         ExampleNamedTuple2(e=99, f=[3, 5], g=42.0),
         ExampleRecordClass(h=4, i=0.5, j={"a": 4, "b": 6.0}, k=None),
-        ExampleOuterDataclass(ExampleInnerDataclass(3))
+        ExampleOuterDataclass(ExampleInnerDataclass(3)),
         ExampleDataclass(ell=4, m=0.5, n={"a": 4, "b": 6.0}, o=None),
     ]
     # override non-init field to ensure the # overridden value is
