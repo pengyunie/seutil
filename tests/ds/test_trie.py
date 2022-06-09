@@ -4,7 +4,7 @@ import pytest
 import seutil as su
 
 
-def test_trie_set():
+def test_set():
     trie = su.ds.trie.Trie()
     trie.set("key1")
     assert "key1" in trie
@@ -17,7 +17,7 @@ def test_trie_set():
     assert trie["efg"] == 456
 
 
-def test_trie_set_exist_ok():
+def test_set_exist_ok():
     trie = su.ds.trie.Trie()
     trie.set("key1")
     trie.set("key1", exist_ok=True)
@@ -27,14 +27,14 @@ def test_trie_set_exist_ok():
         trie.set("key1", exist_ok=False)
 
 
-def test_trie_get():
+def test_get():
     trie = su.ds.trie.Trie()
     trie["key1"] = 123
     assert trie.get("key1") == 123
     assert trie["key1"] == 123
 
 
-def test_trie_get_missing():
+def test_get_missing():
     trie = su.ds.trie.Trie()
     assert trie.get("key1") is None
 
@@ -45,41 +45,41 @@ def test_trie_get_missing():
         trie[""]
 
 
-def test_trie_get_default():
+def test_get_default():
     trie = su.ds.trie.Trie()
     trie["key1"] = 123
     assert trie.get("key1", default=456) == 123
     assert trie.get("key2", default=456) == 456
 
 
-def test_trie_compute_add():
+def test_compute_add():
     trie = su.ds.trie.Trie()
     trie.compute("key1", lambda v: 123)
     assert trie["key1"] == 123
 
 
-def test_trie_compute_remove():
+def test_compute_remove():
     trie = su.ds.trie.Trie()
     trie["key1"] = 123
     trie.compute("key1", lambda v: su.ds.trie.Trie.MISSING)
     assert "key1" not in trie
 
 
-def test_trie_compute_update():
+def test_compute_update():
     trie = su.ds.trie.Trie()
     trie["key1"] = 123
     trie.compute("key1", lambda v: 456)
     assert trie["key1"] == 456
 
 
-def test_trie_remove():
+def test_remove():
     trie = su.ds.trie.Trie()
     trie["key1"] = 123
     del trie["key1"]
     assert "key1" not in trie
 
 
-def test_trie_remove_missing():
+def test_remove_missing():
     trie = su.ds.trie.Trie()
     with pytest.raises(KeyError):
         del trie["key1"]
@@ -88,21 +88,21 @@ def test_trie_remove_missing():
         del trie[""]
 
 
-def test_trie_has_key():
+def test_has_key():
     trie = su.ds.trie.Trie()
     trie["key1"] = 123
     assert "key1" in trie
     assert "key2" not in trie
 
 
-def test_trie_has_prefix():
+def test_has_prefix():
     trie = su.ds.trie.Trie()
     trie["key1"] = 123
     assert trie.has_prefix("ke")
     assert not trie.has_prefix("what")
 
 
-def test_trie_copy():
+def test_copy():
     trie = su.ds.trie.Trie()
     trie["key1"] = 123
     trie["mutable1"] = [4, 5, 6]
@@ -117,7 +117,7 @@ def test_trie_copy():
     assert trie_copy["mutable1"] == [4, 5, 6, 7]
 
 
-def test_trie_deepcopy():
+def test_deepcopy():
     trie = su.ds.trie.Trie()
     trie["key1"] = 123
     trie["mutable1"] = [4, 5, 6]
@@ -132,7 +132,7 @@ def test_trie_deepcopy():
     assert trie_copy["mutable1"] == [4, 5, 6]
 
 
-def test_trie_get_subtrie():
+def test_get_subtrie():
     trie = su.ds.trie.Trie()
     trie["key1"] = 123
     trie["key2"] = 456
@@ -142,7 +142,7 @@ def test_trie_get_subtrie():
     assert subtrie["2"] == 456
 
 
-def test_trie_get_subtrie_mismatch():
+def test_get_subtrie_mismatch():
     trie = su.ds.trie.Trie()
     trie["key1"] = 123
     trie["key2"] = 456
@@ -151,7 +151,7 @@ def test_trie_get_subtrie_mismatch():
     assert len(subtrie) == 0
 
 
-def test_trie_get_subtrie_prefix_of():
+def test_get_subtrie_prefix_of():
     trie = su.ds.trie.Trie()
     trie["abc"] = 123
     trie["abcd"] = 456
@@ -165,7 +165,7 @@ def test_trie_get_subtrie_prefix_of():
     assert "def" not in subtrie
 
 
-def test_trie_get_subtrie_using_elems():
+def test_get_subtrie_using_elems():
     trie = su.ds.trie.Trie()
     trie["abc"] = 1
     trie["abcd"] = 2
@@ -206,3 +206,84 @@ def test_items():
     assert e2v["a2"] == 2
     assert e2v["b3"] == 3
     assert e2v["c4"] == 4
+
+
+def test_keys():
+    trie = su.ds.trie.Trie()
+    trie["a1"] = 1
+    trie["a2"] = 2
+    trie["b3"] = 3
+    trie["c4"] = 4
+
+    keys = list(trie.keys())
+    assert len(keys) == 4
+    assert "a1" in keys
+    assert "a2" in keys
+    assert "b3" in keys
+    assert "c4" in keys
+
+
+def test_values():
+    trie = su.ds.trie.Trie()
+    trie["a1"] = 1
+    trie["a2"] = 2
+    trie["b3"] = 3
+    trie["c4"] = 4
+
+    values = list(trie.values())
+    assert len(values) == 4
+    assert 1 in values
+    assert 2 in values
+    assert 3 in values
+    assert 4 in values
+
+
+def test_overlaps_with():
+    trie1 = su.ds.trie.Trie()
+    trie1["abc"] = 1
+    trie1["def"] = 2
+
+    trie2 = su.ds.trie.Trie()
+    trie2["ab"] = 3
+    trie2["defg"] = 4
+
+    e2overlaps = {k: (t1, t2) for k, t1, t2 in trie1.overlaps_with(trie2)}
+    assert set(e2overlaps.keys()) == {"", "a", "ab", "d", "de", "def"}
+
+
+def test_overlaps_with_self_has_value():
+    trie1 = su.ds.trie.Trie()
+    trie1["alpha"] = 1
+    trie1["beta"] = 2
+    trie1["gamma"] = 3
+
+    trie2 = su.ds.trie.Trie()
+    trie2["alphaXXX"] = 1
+    trie2["betaXXX"] = 1
+
+    e2overlaps = {
+        k: (t1, t2) for k, t1, t2 in trie1.overlaps_with(trie2, self_has_value=True)
+    }
+    assert len(e2overlaps) == 2
+    assert e2overlaps["alpha"][0][""] == 1
+    assert "" not in e2overlaps["alpha"][1]
+    assert e2overlaps["beta"][0][""] == 2
+    assert "" not in e2overlaps["beta"][1]
+
+
+def test_overlaps_with_other_has_value():
+    trie1 = su.ds.trie.Trie()
+    trie1["alpha"] = 1
+    trie1["beta"] = 2
+    trie1["gamma"] = 3
+
+    trie2 = su.ds.trie.Trie()
+    trie2["aaa"] = 4
+    trie2["b"] = 5
+
+    e2overlaps = {
+        k: (t1, t2) for k, t1, t2 in trie1.overlaps_with(trie2, other_has_value=True)
+    }
+    assert len(e2overlaps) == 1
+    assert e2overlaps["b"][1][""] == 5
+    assert "" not in e2overlaps["b"][0]
