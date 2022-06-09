@@ -1,4 +1,5 @@
 import dataclasses
+import re
 import sys
 import traceback
 from pathlib import Path
@@ -7,7 +8,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 from tqdm import tqdm
 
-from . import bash, io, log, ds
+from . import bash, ds, io, log
 
 logger = log.get_logger(__name__, log.INFO)
 
@@ -55,17 +56,21 @@ class Project:
         self.require_cloned()
         return self._dir
 
+    re_github_url = re.compile(
+        r"^((https://)?github\.com/|git@github\.com:)(?P<repo>[^/\n\r]+)/(?P<name>[^/\n\r]+?)(\.git)?$"
+    )
+
     @classmethod
-    def from_github_url(
-        cls,
-        url: str,
-        revision: Optional[str] = None,
-        default_branch: Optional[str] = None,
-    ) -> "Project":
+    def from_github_url(cls, url: str) -> "Project":
         """
-        TODO: Creates a Project from a GitHub URL.
+        Creates a Project from a GitHub URL.
         """
-        raise NotImplementedError()
+        match = cls.re_github_url.fullmatch(url)
+        if match is None:
+            raise ValueError(f"Invalid GitHub URL: {url}")
+        return cls(
+            full_name=f"{match.group('repo')}_{match.group('name')}", clone_url=url
+        )
 
     def clone(
         self, downloads_dir: Path, name: Optional[str] = None, exists: str = "ignore"
