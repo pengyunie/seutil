@@ -226,7 +226,7 @@ class Trie(Generic[TElem, TValue]):
         new_trie.data = cur
         return new_trie
 
-    def intersect_key(self, key: Iterable[TElem]) -> "Trie[TElem, TValue]":
+    def get_subtrie_prefix_of(self, key: Iterable[TElem]) -> "Trie[TElem, TValue]":
         """
         Gets the subtrie that is bounded by the given key: all keys in the returned subtrie are prefix of the given key.
         If no prefix of the key exists in this subtrie, an empty trie is returned.
@@ -246,6 +246,10 @@ class Trie(Generic[TElem, TValue]):
                 new_cur[c] = {}
                 new_cur = new_cur[c]
                 cur = cur[c]
+
+        if self.empty_elem in cur:
+            new_cur[self.empty_elem] = cur[self.empty_elem]
+
         new_trie.prune()
         return new_trie
 
