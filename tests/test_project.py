@@ -223,3 +223,19 @@ def test_get_revisions_lattice(local_gitgame_repo: su.project.Project, tmp_path:
     lattice = local_gitgame_repo.get_revisions_lattice()
     assert lattice.ncount() == 6
     assert lattice.ecount() == 5
+
+
+def test_from_github_url():
+    for url in [
+        "https://github.com/pengyunie/seutil",
+        "https://github.com/pengyunie/seutil.git",
+        "git@github.com:pengyunie/seutil.git",
+    ]:
+        proj = su.project.Project.from_github_url(url)
+        assert proj.clone_url == url
+        assert proj.full_name == "pengyunie_seutil"
+
+
+def test_from_github_url_invalid():
+    with pytest.raises(ValueError):
+        su.project.Project.from_github_url("http://github.com/pengyunie/seutil")
