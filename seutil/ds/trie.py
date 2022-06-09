@@ -328,7 +328,7 @@ class Trie(Generic[TElem, TValue]):
 
     def overlaps_with(
         self, other: "Trie", self_has_value: bool = False, other_has_value: bool = False
-    ) -> Iterable[Tuple["Trie", "Trie"]]:
+    ) -> Iterable[Tuple[Iterable[TElem], "Trie", "Trie"]]:
         """
         Finds all subtries that overlap with the other trie (including the root subtries).
         :param other: the other trie to compare with.
@@ -347,7 +347,7 @@ class Trie(Generic[TElem, TValue]):
                 self_subtrie.data = self_node
                 other_subtrie = Trie(other.empty_elem, other.join_func)
                 other_subtrie.data = other_node
-                yield self_subtrie, other_subtrie
+                yield self.join_func(prefix), self_subtrie, other_subtrie
 
             # find all overlapping children
             for k, v in self_node.items():
