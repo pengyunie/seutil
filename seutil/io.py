@@ -565,7 +565,11 @@ def deserialize(
         field_values = {}
         for f in clz._fields:
             if hasattr(clz, "_field_types"):
+                # for Python <3.9
                 t = clz._field_types.get(f)
+            elif hasattr(clz, '__annotations__'):
+                # for Python >=3.9
+                t = clz.__annotations__.get(f)
             else:
                 t = None
             if f in data:
@@ -574,13 +578,19 @@ def deserialize(
 
     # DataClass
     if dataclasses.is_dataclass(clz):
-        field_values = {}
+        init_field_values = {}
+        non_init_field_values = {}
         for f in dataclasses.fields(clz):
             if f.name in data:
+                field_values = init_field_values if f.init else non_init_field_values
                 field_values[f.name] = deserialize(
                     data.get(f.name), f.type, error=error
                 )
-        return clz(**field_values)
+        obj = clz(**init_field_values)
+        for f_name, f_value in non_init_field_values.items():
+            # use object.__setattr__ in case clz is frozen
+            object.__setattr__(obj, f_name, f_value)
+        return obj
 
     # Primitive types
     if clz_origin == type(data):
