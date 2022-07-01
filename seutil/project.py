@@ -1,13 +1,15 @@
 import dataclasses
+import re
 import sys
 import traceback
 from pathlib import Path
 from types import TracebackType
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+import warnings
 
 from tqdm import tqdm
 
-from . import bash, io, log, ds
+from . import bash, ds, io, log
 
 logger = log.get_logger(__name__, log.INFO)
 
@@ -55,17 +57,21 @@ class Project:
         self.require_cloned()
         return self._dir
 
+    re_github_url = re.compile(
+        r"^((https://)?github\.com/|git@github\.com:)(?P<repo>[^/\n\r]+)/(?P<name>[^/\n\r]+?)(\.git)?$"
+    )
+
     @classmethod
-    def from_github_url(
-        cls,
-        url: str,
-        revision: Optional[str] = None,
-        default_branch: Optional[str] = None,
-    ) -> "Project":
+    def from_github_url(cls, url: str) -> "Project":
         """
-        TODO: Creates a Project from a GitHub URL.
+        Creates a Project from a GitHub URL.
         """
-        raise NotImplementedError()
+        match = cls.re_github_url.fullmatch(url)
+        if match is None:
+            raise ValueError(f"Invalid GitHub URL: {url}")
+        return cls(
+            full_name=f"{match.group('repo')}_{match.group('name')}", clone_url=url
+        )
 
     def clone(
         self, downloads_dir: Path, name: Optional[str] = None, exists: str = "ignore"
@@ -205,7 +211,7 @@ class Project:
         self,
         func: Callable[["Project", str], Any],
         revisions: Iterable[str],
-        is_auto_checkout: bool = True,
+        auto_checkout: bool = True,
         errors: str = "collate",
         pbar: Optional[tqdm] = None,
     ) -> List[Any]:
@@ -214,7 +220,7 @@ class Project:
 
         :param func: the function to run, which takes a Project object and a string revision.
         :param revisions: the revisions to run the function on.
-        :param is_auto_checkout: if set to False, will not automatically checkout each revision (for example, if func does that itself, or if func does not need the project to be checked out at the given revision).
+        :param auto_checkout: if set to False, will not automatically checkout each revision (for example, if func does that itself, or if func does not need the project to be checked out at the given revision).
         :param errors: what to do if the function throws errors:
             * ignore: do nothing, not even say a word.
             * warning: make a log.warning for each error.
@@ -235,9 +241,9 @@ class Project:
                 pbar.set_description(f"Revision {revision}")
 
             try:
-                if is_auto_checkout:
+                if auto_checkout:
                     self.checkout(revision, True)
-                with io.cd(self.checkout_dir):
+                with io.cd(self.dir):
                     results.append(func(self, revision))
             except KeyboardInterrupt:
                 raise
@@ -245,11 +251,11 @@ class Project:
                 if errors == "ignore":
                     pass
                 elif errors == "warning":
-                    logger.warning(
+                    warnings.warn(
                         f"Project {self.full_name}: error at revision {revision}: {traceback.format_exc()}"
                     )
                 elif errors == "collate":
-                    logger.warning(
+                    warnings.warn(
                         f"Project {self.full_name}: error at revision {revision}: {traceback.format_exc()}"
                     )
                     errored_revisions.append(revision)

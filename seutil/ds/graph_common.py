@@ -1,5 +1,5 @@
 import abc
-from typing import List, Optional
+from typing import Iterable, List, Optional
 
 import igraph
 
@@ -165,3 +165,9 @@ class GraphLikeADT:
 
     def __repr__(self):
         return self.g.__repr__()
+
+    def nodes(self) -> Iterable[Node]:
+        return [Node(v, self) for v in self.g.vs]
+
+    def edges(self) -> Iterable[Edge]:
+        return [Edge(e, self) for e in self.g.es]
