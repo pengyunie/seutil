@@ -20,7 +20,8 @@ def local_gitgame_repo(tmp_path: Path):
 
     return su.project.Project(
         full_name="pengyunie_git-game",
-        clone_url=f"file://{tmp_path.absolute()}/git-game.git",
+        url=f"file://{tmp_path.absolute()}/git-game.git",
+        data={"metadata1": "aaa", "metadata2": "bbb"},
     )
 
 
@@ -29,8 +30,28 @@ def remote_gitgame_repo():
     """The git-game repo on github."""
     return su.project.Project(
         full_name="pengyunie_git-game",
-        clone_url=f"https://github.com/pengyunie/git-game.git",
+        url=f"https://github.com/pengyunie/git-game.git",
+        data={"metadata1": "aaa", "metadata2": "bbb"},
     )
+
+
+REMOTE_GITGAME_REPO_JSON = {
+    "full_name": "pengyunie_git-game",
+    "url": "https://github.com/pengyunie/git-game.git",
+    "metadata1": "aaa",
+    "metadata2": "bbb",
+}
+
+
+def test_deserialize(remote_gitgame_repo: su.project.Project):
+    assert (
+        su.io.deserialize(REMOTE_GITGAME_REPO_JSON, su.project.Project)
+        == remote_gitgame_repo
+    )
+
+
+def test_serialize(remote_gitgame_repo: su.project.Project):
+    assert su.io.serialize(remote_gitgame_repo) == REMOTE_GITGAME_REPO_JSON
 
 
 def test_clone_local(local_gitgame_repo: su.project.Project, tmp_path: Path):
@@ -233,7 +254,7 @@ def test_from_github_url():
         "git@github.com:pengyunie/seutil.git",
     ]:
         proj = su.project.Project.from_github_url(url)
-        assert proj.clone_url == url
+        assert proj.url == url
         assert proj.full_name == "pengyunie_seutil"
 
 

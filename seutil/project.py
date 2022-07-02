@@ -1,11 +1,12 @@
+import copy
 import dataclasses
 import re
 import sys
 import traceback
+import warnings
 from pathlib import Path
 from types import TracebackType
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
-import warnings
 
 from tqdm import tqdm
 
@@ -42,12 +43,12 @@ class Project:
     `Project` provides common version control operations, such as cloning, checking out, etc.
 
     :param full_name: the full name of the project; this name is used as the directory/file name when operating on the project, so it should be unique and path-safe (i.e., does not contain '/', ' ', or other special characters that could cause trouble being a path). The recommended name for a project $repo/$name is $repo_$name (it is unique if $repo does not contain '_', which is the case at least for GitHub).
-    :param clone_url: the URL to clone the project from.
+    :param url: the URL to clone the project from.
     :param data: other information of the project stored in key-value pairs, such as revision, branch, etc.; keys should be string and values should be serializable.
     """
 
     full_name: str
-    clone_url: str
+    url: str
     data: Dict[str, Any] = dataclasses.field(default_factory=dict)
 
     _dir: dataclasses.InitVar[Path] = None
@@ -56,6 +57,24 @@ class Project:
     def dir(self) -> Path:
         self.require_cloned()
         return self._dir
+
+    @classmethod
+    def deserialize(cls, data: dict) -> "Project":
+        """
+        Deserialize a project from a dictionary.
+        The "full_name" and "url" metadata are compulsory and stored in the dataclass;
+        the rest of the metadata is stored in the "data" field.
+        """
+        data = copy.copy(data)
+        full_name = data.pop("full_name")
+        url = data.pop("url")
+        return cls(full_name=full_name, url=url, data=data)
+
+    def serialize(self) -> dict:
+        """
+        Serialize the metadata of the project (full_name, url, and others in data) to a flat dictionary.
+        """
+        return {"full_name": self.full_name, "url": self.url, **self.data}
 
     re_github_url = re.compile(
         r"^((https://)?github\.com/|git@github\.com:)(?P<repo>[^/\n\r]+)/(?P<name>[^/\n\r]+?)(\.git)?$"
@@ -69,9 +88,7 @@ class Project:
         match = cls.re_github_url.fullmatch(url)
         if match is None:
             raise ValueError(f"Invalid GitHub URL: {url}")
-        return cls(
-            full_name=f"{match.group('repo')}_{match.group('name')}", clone_url=url
-        )
+        return cls(full_name=f"{match.group('repo')}_{match.group('name')}", url=url)
 
     def clone(
         self, downloads_dir: Path, name: Optional[str] = None, exists: str = "ignore"
@@ -117,7 +134,7 @@ class Project:
 
         io.mkdir(downloads_dir)
         with io.cd(downloads_dir):
-            bash.run(f"git clone {self.clone_url} {name}", 0)
+            bash.run(f"git clone {self.url} {name}", 0)
         self._dir = downloads_dir / name
 
     def set_cloned_dir(self, dir: Path) -> None:
