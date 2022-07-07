@@ -1,180 +1,184 @@
 import collections
 import dataclasses
-import unittest
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
+import pytest
+import seutil as su
 from recordclass import RecordClass
 
-import seutil as su
+PREFIX = "testioprefix"
+SUFFIX = "testiosuffix"
+SEPARATOR = "-X-"
 
 
-class test_io_tempfile(unittest.TestCase):
+def test_mktmp():
+    # Test arguments prefix, suffix, separator
+    tmp_file = su.io.mktmp(prefix=PREFIX, suffix=SUFFIX, separator=SEPARATOR)
+    assert tmp_file.is_file()
+    assert tmp_file.name.startswith(PREFIX + SEPARATOR)
+    assert tmp_file.name.endswith(SEPARATOR + SUFFIX)
 
-    PREFIX = "testioprefix"
-    SUFFIX = "testiosuffix"
-    SEPARATOR = "-X-"
+    # Test using the file
+    with open(tmp_file, "wt") as f:
+        f.write("aaa")
 
-    def test_mktmp(self):
-        # Test arguments prefix, suffix, separator
-        tmp_file = su.io.mktmp(prefix=self.PREFIX, suffix=self.SUFFIX, separator=self.SEPARATOR)
-        self.assertTrue(tmp_file.is_file())
-        self.assertTrue(tmp_file.name.startswith(self.PREFIX + self.SEPARATOR))
-        self.assertTrue(tmp_file.name.endswith(self.SEPARATOR + self.SUFFIX))
+    with open(tmp_file, "wb") as f:
+        f.write(b"aaa")
 
-        # Test using the file
-        with open(tmp_file, "wt") as f:
-            f.write("aaa")
-
-        with open(tmp_file, "wb") as f:
-            f.write(b"aaa")
-
-        su.io.rm(tmp_file)
-
-    def test_mktmp_dir(self):
-        # Test arguments prefix, suffix, separator
-        tmp_dir = su.io.mktmp_dir(prefix=self.PREFIX, suffix=self.SUFFIX, separator=self.SEPARATOR)
-        self.assertTrue(tmp_dir.is_dir())
-        self.assertTrue(tmp_dir.name.startswith(self.PREFIX + self.SEPARATOR))
-        self.assertTrue(tmp_dir.name.endswith(self.SEPARATOR + self.SUFFIX))
-
-        # Test using the dir
-        with open(tmp_dir / "test.txt", "wt") as f:
-            f.write("aaa")
-
-        su.io.rmdir(tmp_dir)
-
-    def test_mktmp_argument_dir(self):
-        # Test argument dir of mktmp, mktmp_dir
-        tmp_dir_1 = su.io.mktmp_dir()
-
-        tmp_dir_2 = su.io.mktmp_dir(prefix=self.PREFIX, suffix=self.SUFFIX, separator=self.SEPARATOR, dir=tmp_dir_1)
-        self.assertTrue(tmp_dir_2.is_dir())
-        self.assertTrue(tmp_dir_2.name.startswith(self.PREFIX + self.SEPARATOR))
-        self.assertTrue(tmp_dir_2.name.endswith(self.SEPARATOR + self.SUFFIX))
-
-        tmp_file = su.io.mktmp(prefix=self.PREFIX, suffix=self.SUFFIX, separator=self.SEPARATOR, dir=tmp_dir_1)
-        self.assertTrue(tmp_file.is_file())
-        self.assertTrue(tmp_file.name.startswith(self.PREFIX + self.SEPARATOR))
-        self.assertTrue(tmp_file.name.endswith(self.SEPARATOR + self.SUFFIX))
-
-        su.io.rmdir(tmp_dir_1)
+    su.io.rm(tmp_file)
 
 
-class test_mk_rm_cd(unittest.TestCase):
+def test_mktmp_dir():
+    # Test arguments prefix, suffix, separator
+    tmp_dir = su.io.mktmp_dir(prefix=PREFIX, suffix=SUFFIX, separator=SEPARATOR)
+    assert tmp_dir.is_dir()
+    assert tmp_dir.name.startswith(PREFIX + SEPARATOR)
+    assert tmp_dir.name.endswith(SEPARATOR + SUFFIX)
 
-    def setUp(self) -> None:
-        self.temp_dir = su.io.mktmp_dir()
+    # Test using the dir
+    with open(tmp_dir / "test.txt", "wt") as f:
+        f.write("aaa")
 
-    def tearDown(self) -> None:
-        su.io.rmdir(self.temp_dir)
+    su.io.rmdir(tmp_dir)
 
-    def test_mkdir(self):
-        su.io.mkdir(self.temp_dir / "test1")
 
-    def test_mkdir_fresh(self):
-        # fresh=False should not delete existing content
-        temp_dir_2 = self.temp_dir / "test2"
-        su.io.mkdir(temp_dir_2, fresh=False)
-        with open(temp_dir_2 / "test.txt", "wt") as f:
-            f.write("aaa")
-        su.io.mkdir(temp_dir_2, fresh=False)
-        self.assertTrue((temp_dir_2 / "test.txt").is_file())
+def test_mktmp_argument_dir():
+    # Test argument dir of mktmp, mktmp_dir
+    tmp_dir_1 = su.io.mktmp_dir()
 
-        # fresh=True should delete existing content
-        temp_dir_3 = self.temp_dir / "test3"
-        su.io.mkdir(temp_dir_3, fresh=True)
-        with open(temp_dir_3 / "test.txt", "wt") as f:
-            f.write("aaa")
-        su.io.mkdir(temp_dir_3, fresh=True)
-        self.assertFalse((temp_dir_3 / "test.txt").is_file())
+    tmp_dir_2 = su.io.mktmp_dir(
+        prefix=PREFIX, suffix=SUFFIX, separator=SEPARATOR, dir=tmp_dir_1
+    )
+    assert tmp_dir_2.is_dir()
+    assert tmp_dir_2.name.startswith(PREFIX + SEPARATOR)
+    assert tmp_dir_2.name.endswith(SEPARATOR + SUFFIX)
 
-    def test_mkdir_parents(self):
-        # parents=True should create parent files
-        su.io.mkdir(self.temp_dir / "test4" / "ddd", parents=True)
-        self.assertTrue((self.temp_dir / "test4").is_dir())
-        self.assertTrue((self.temp_dir / "test4" / "ddd").is_dir())
+    tmp_file = su.io.mktmp(
+        prefix=PREFIX, suffix=SUFFIX, separator=SEPARATOR, dir=tmp_dir_1
+    )
+    assert tmp_file.is_file()
+    assert tmp_file.name.startswith(PREFIX + SEPARATOR)
+    assert tmp_file.name.endswith(SEPARATOR + SUFFIX)
 
-        # parents=False should raise error
-        with self.assertRaises(FileNotFoundError):
-            su.io.mkdir(self.temp_dir / "test5" / "ddd", parents=False)
+    su.io.rmdir(tmp_dir_1)
 
-    def test_rm(self):
-        # rm file
-        f = su.io.mktmp(dir=self.temp_dir)
-        self.assertTrue(f.is_file())
-        su.io.rm(f)
-        self.assertFalse(f.is_file())
 
-        # rm dir
-        d = su.io.mktmp_dir(dir=self.temp_dir)
-        self.assertTrue(d.is_dir())
-        su.io.rm(d)
-        self.assertFalse(d.is_dir())
+def test_mkdir(tmp_path: Path):
+    su.io.mkdir(tmp_path / "test1")
 
-    def test_rm_missing_ok(self):
-        # missing_ok=True should just be fine
-        su.io.rm(self.temp_dir / "abcdefg", missing_ok=True)
 
-        # missing_ok=False should raise error
-        with self.assertRaises(FileNotFoundError):
-            su.io.rm(self.temp_dir / "abcdefg", missing_ok=False)
+def test_mkdir_fresh(tmp_path: Path):
+    # fresh=False should not delete existing content
+    temp_dir_2 = tmp_path / "test2"
+    su.io.mkdir(temp_dir_2, fresh=False)
+    with open(temp_dir_2 / "test.txt", "wt") as f:
+        f.write("aaa")
+    su.io.mkdir(temp_dir_2, fresh=False)
+    assert (temp_dir_2 / "test.txt").is_file()
 
-    def test_rm_force(self):
-        d = su.io.mktmp_dir(dir=self.temp_dir)
-        su.io.mktmp(dir=d)
-        self.assertTrue(d.is_dir())
+    # fresh=True should delete existing content
+    temp_dir_3 = tmp_path / "test3"
+    su.io.mkdir(temp_dir_3, fresh=True)
+    with open(temp_dir_3 / "test.txt", "wt") as f:
+        f.write("aaa")
+    su.io.mkdir(temp_dir_3, fresh=True)
+    assert not (temp_dir_3 / "test.txt").is_file()
 
-        # force=False should raise error
-        with self.assertRaises(OSError):
-            su.io.rm(d, force=False)
-        self.assertTrue(d.is_dir())
 
-        # force=True should be fine
-        su.io.rm(d, force=True)
-        self.assertFalse(d.is_dir())
+def test_mkdir_parents(tmp_path: Path):
+    # parents=True should create parent files
+    su.io.mkdir(tmp_path / "test4" / "ddd", parents=True)
+    assert (tmp_path / "test4").is_dir()
+    assert (tmp_path / "test4" / "ddd").is_dir()
 
-    def test_rmdir(self):
-        # rm dir
-        d = su.io.mktmp_dir(dir=self.temp_dir)
-        self.assertTrue(d.is_dir())
-        su.io.rmdir(d)
-        self.assertFalse(d.is_dir())
+    # parents=False should raise error
+    with pytest.raises(FileNotFoundError):
+        su.io.mkdir(tmp_path / "test5" / "ddd", parents=False)
 
-        # cannot rm file
-        f = su.io.mktmp(dir=self.temp_dir)
-        self.assertTrue(f.is_file())
-        with self.assertRaises(OSError):
-            su.io.rmdir(f)
 
-    def test_rmdir_missing_ok(self):
-        # missing_ok=True should just be fine
-        su.io.rmdir(self.temp_dir / "abcdefg", missing_ok=True)
+def test_rm(tmp_path):
+    # rm file
+    f = su.io.mktmp(dir=tmp_path)
+    assert f.is_file()
+    su.io.rm(f)
+    assert not f.is_file()
 
-        # missing_ok=False should raise error
-        with self.assertRaises(FileNotFoundError):
-            su.io.rmdir(self.temp_dir / "abcdefg", missing_ok=False)
+    # rm dir
+    d = su.io.mktmp_dir(dir=tmp_path)
+    assert d.is_dir()
+    su.io.rm(d)
+    assert not d.is_dir()
 
-    def test_rmdir_force(self):
-        d = su.io.mktmp_dir(dir=self.temp_dir)
-        su.io.mktmp(dir=d)
-        self.assertTrue(d.is_dir())
 
-        # force=False should raise error
-        with self.assertRaises(OSError):
-            su.io.rmdir(d, force=False)
-        self.assertTrue(d.is_dir())
+def test_rm_missing_ok(tmp_path):
+    # missing_ok=True should just be fine
+    su.io.rm(tmp_path / "abcdefg", missing_ok=True)
 
-        # force=True should be fine
-        su.io.rmdir(d, force=True)
-        self.assertFalse(d.is_dir())
+    # missing_ok=False should raise error
+    with pytest.raises(FileNotFoundError):
+        su.io.rm(tmp_path / "abcdefg", missing_ok=False)
 
-    def test_cd(self):
-        d = su.io.mktmp_dir(dir=self.temp_dir)
-        self.assertFalse(Path.cwd() == d)
-        with su.io.cd(d):
-            self.assertTrue(Path.cwd() == d)
-        self.assertFalse(Path.cwd() == d)
+
+def test_rm_force(tmp_path):
+    d = su.io.mktmp_dir(dir=tmp_path)
+    su.io.mktmp(dir=d)
+    assert d.is_dir()
+
+    # force=False should raise error
+    with pytest.raises(OSError):
+        su.io.rm(d, force=False)
+    assert d.is_dir()
+
+    # force=True should be fine
+    su.io.rm(d, force=True)
+    assert not d.is_dir()
+
+
+def test_rmdir(tmp_path):
+    # rm dir
+    d = su.io.mktmp_dir(dir=tmp_path)
+    assert d.is_dir()
+    su.io.rmdir(d)
+    assert not d.is_dir()
+
+    # cannot rm file
+    f = su.io.mktmp(dir=tmp_path)
+    assert f.is_file()
+    with pytest.raises(OSError):
+        su.io.rmdir(f)
+
+
+def test_rmdir_missing_ok(tmp_path):
+    # missing_ok=True should just be fine
+    su.io.rmdir(tmp_path / "abcdefg", missing_ok=True)
+
+    # missing_ok=False should raise error
+    with pytest.raises(FileNotFoundError):
+        su.io.rmdir(tmp_path / "abcdefg", missing_ok=False)
+
+
+def test_rmdir_force(tmp_path):
+    d = su.io.mktmp_dir(dir=tmp_path)
+    su.io.mktmp(dir=d)
+    assert d.is_dir()
+
+    # force=False should raise error
+    with pytest.raises(OSError):
+        su.io.rmdir(d, force=False)
+    assert d.is_dir()
+
+    # force=True should be fine
+    su.io.rmdir(d, force=True)
+    assert not d.is_dir()
+
+
+def test_cd(tmp_path):
+    d = su.io.mktmp_dir(dir=tmp_path)
+    assert Path.cwd() != d
+    with su.io.cd(d):
+        assert Path.cwd() == d
+    assert Path.cwd() != d
 
 
 class ExampleNamedTuple1(NamedTuple):
@@ -202,13 +206,14 @@ class ExampleInnerDataclass:
         return str(self.q)
 
     @classmethod
-    def deserialize(cls, data: str) -> 'ExampleInnerDataclass':
+    def deserialize(cls, data: str) -> "ExampleInnerDataclass":
         return ExampleInnerDataclass(int(data))
 
 
 @dataclasses.dataclass
 class ExampleOuterDataclass:
-    r : ExampleInnerDataclass
+    r: ExampleInnerDataclass
+
 
 @dataclasses.dataclass
 class ExampleDataclass:
@@ -222,105 +227,106 @@ class ExampleDataclass:
         self.p = str(self.ell) + str(self.m)
 
 
-class test_io_dump_load(unittest.TestCase):
+TXT_INPUTS: List[Any] = [
+    "ABCDEFG 123\n 987",
+    "Hello, world!",
+]
 
-    def setUp(self) -> None:
-        self.temp_dir = su.io.mktmp_dir()
+JSON_INPUTS: List[Any] = [
+    None,
+    123,
+    42.0,
+    ["aaaaaa", "EEEEE", 11111],
+    ("xxxxxx",),
+    {"xyz": 123, "abc": "def"},
+    collections.Counter({"a": 3, "c": 4}),
+    ExampleNamedTuple1(a=2, b=0.3, c=(1, 2, 3)),
+    ExampleNamedTuple2(e=99, f=[3, 5], g=42.0),
+    ExampleRecordClass(h=4, i=0.5, j={"a": 4, "b": 6.0}, k=None),
+    ExampleOuterDataclass(ExampleInnerDataclass(3)),
+    ExampleDataclass(ell=4, m=0.5, n={"a": 4, "b": 6.0}, o=None),
+]
+# override non-init field to ensure the # overridden value is
+# actually loaded rather than recomputed
+JSON_INPUTS[-1].p = "overridden"
 
-    def tearDown(self) -> None:
-        su.io.rmdir(self.temp_dir)
+YAML_INPUTS: List[Any] = [
+    {34: 56},
+]
 
-    TXT_INPUTS: List[Any] = [
-        "ABCDEFG 123\n 987",
-        "Hello, world!",
-    ]
+PICKLE_INPUTS: List[Any] = [
+    12 + 34j,
+]
 
-    JSON_INPUTS: List[Any] = [
-        None,
-        123,
-        42.0,
-        ["aaaaaa", "EEEEE", 11111],
-        ("xxxxxx",),
-        {"xyz": 123, "abc": "def"},
-        collections.Counter({"a": 3, "c": 4}),
-        ExampleNamedTuple1(a=2, b=0.3, c=(1, 2, 3)),
-        ExampleNamedTuple2(e=99, f=[3, 5], g=42.0),
-        ExampleRecordClass(h=4, i=0.5, j={"a": 4, "b": 6.0}, k=None),
-        ExampleOuterDataclass(ExampleInnerDataclass(3)),
-        ExampleDataclass(ell=4, m=0.5, n={"a": 4, "b": 6.0}, o=None),
-    ]
-    # override non-init field to ensure the # overridden value is
-    # actually loaded rather than recomputed
-    JSON_INPUTS[-1].p = "overridden"
+FMTS_INPUTS: List[Tuple[str, Optional[su.io.Fmt], List[Any]]] = [
+    ("a.txt", None, TXT_INPUTS),
+    ("a.txt", su.io.Fmt.txt, TXT_INPUTS),
+    ("a.json", None, TXT_INPUTS + JSON_INPUTS),
+    ("a.json", su.io.Fmt.json, TXT_INPUTS + JSON_INPUTS),
+    ("a.json", su.io.Fmt.jsonPretty, TXT_INPUTS + JSON_INPUTS),
+    ("a.json", su.io.Fmt.jsonNoSort, TXT_INPUTS + JSON_INPUTS),
+    ("a.yml", None, TXT_INPUTS + JSON_INPUTS + YAML_INPUTS),
+    ("a.yml", su.io.Fmt.yaml, TXT_INPUTS + JSON_INPUTS + YAML_INPUTS),
+    ("a.pkl", None, TXT_INPUTS + JSON_INPUTS + YAML_INPUTS + PICKLE_INPUTS),
+    ("a.pkl", su.io.Fmt.pickle, TXT_INPUTS + JSON_INPUTS + YAML_INPUTS + PICKLE_INPUTS),
+]
 
-    YAML_INPUTS: List[Any] = [
-        {34: 56},
-    ]
 
-    PICKLE_INPUTS: List[Any] = [
-        12 + 34j,
-    ]
-
-    FMTS_INPUTS: List[Tuple[str, Optional[su.io.Fmt], List[Any]]] = [
-        ("a.txt", None, TXT_INPUTS),
-        ("a.txt", su.io.Fmt.txt, TXT_INPUTS),
-        ("a.json", None, TXT_INPUTS + JSON_INPUTS),
-        ("a.json", su.io.Fmt.json, TXT_INPUTS + JSON_INPUTS),
-        ("a.json", su.io.Fmt.jsonPretty, TXT_INPUTS + JSON_INPUTS),
-        ("a.json", su.io.Fmt.jsonNoSort, TXT_INPUTS + JSON_INPUTS),
-        ("a.yml", None, TXT_INPUTS + JSON_INPUTS + YAML_INPUTS),
-        ("a.yml", su.io.Fmt.yaml, TXT_INPUTS + JSON_INPUTS + YAML_INPUTS),
-        ("a.pkl", None, TXT_INPUTS + JSON_INPUTS + YAML_INPUTS + PICKLE_INPUTS),
-        ("a.pkl", su.io.Fmt.pickle, TXT_INPUTS + JSON_INPUTS + YAML_INPUTS + PICKLE_INPUTS),
-    ]
-
-    def test_dump_load(self):
-        for fname, fmt, inputs in self.FMTS_INPUTS:
-            for inp in inputs:
-                self._test_dump_load(fname, fmt, inp)
-
-    def _test_dump_load(self, fname, fmt, inp):
+def test_dump_load(tmp_path: Path):
+    def _test_dump_load(fname, fmt, inp):
+        nonlocal tmp_path
         msg = f"{fname=}, {fmt=}, {inp=}"
-        path = self.temp_dir / fname
+        path = tmp_path / fname
 
         su.io.dump(path, inp, fmt=fmt)
-        self.assertTrue(path.is_file(), msg=msg)
+        assert path.is_file(), msg
 
         loaded = su.io.load(path, fmt=fmt, clz=type(inp), error="raise")
-        self.assertEqual(type(inp), type(loaded), msg=msg)
-        self.assertEqual(inp, loaded, msg=msg)
+        assert type(inp) == type(loaded), msg
+        assert inp == loaded, msg
 
         su.io.rm(path)
 
-    TXT_INPUTS_ONELINE = [x.replace("\n", " ") for x in TXT_INPUTS]
+    for fname, fmt, inputs in FMTS_INPUTS:
+        for inp in inputs:
+            _test_dump_load(fname, fmt, inp)
 
-    FMTS_INPUTS_LINE_MODE: List[Tuple[str, Optional[su.io.Fmt], List[Any]]] = [
-        ("a.txt", su.io.Fmt.txtList, TXT_INPUTS_ONELINE),
-        ("a.jsonl", None, TXT_INPUTS_ONELINE + JSON_INPUTS),
-        ("a.jsonl", su.io.Fmt.jsonList, TXT_INPUTS_ONELINE + JSON_INPUTS),
-    ]
 
-    def test_dump_load_line_mode(self):
-        for fname, fmt, inputs in self.FMTS_INPUTS_LINE_MODE:
-            for inp in inputs:
-                self._test_dump_load_line_mode(fname, fmt, inp)
+TXT_INPUTS_ONELINE = [x.replace("\n", " ") for x in TXT_INPUTS]
 
-    def _test_dump_load_line_mode(self, fname, fmt, inp):
+FMTS_INPUTS_LINE_MODE: List[Tuple[str, Optional[su.io.Fmt], List[Any]]] = [
+    ("a.txt", su.io.Fmt.txtList, TXT_INPUTS_ONELINE),
+    ("a.jsonl", None, TXT_INPUTS_ONELINE + JSON_INPUTS),
+    ("a.jsonl", su.io.Fmt.jsonList, TXT_INPUTS_ONELINE + JSON_INPUTS),
+]
+
+
+def test_dump_load_line_mode(tmp_path: Path):
+    def _test_dump_load_line_mode(fname, fmt, inp):
+        nonlocal tmp_path
         msg = f"{fname=}, {fmt=}, {inp=}"
-        path = self.temp_dir / fname
+        path = tmp_path / fname
         inp_list = [inp] * 20
 
         su.io.dump(path, inp_list, fmt=fmt)
-        self.assertTrue(path.is_file(), msg=msg)
+        assert path.is_file(), msg
 
         # Test iter_line=False
-        loaded_list = su.io.load(path, fmt=fmt, clz=type(inp), error="raise", iter_line=False)
-        self.assertEqual(list, type(loaded_list), msg=msg)
-        self.assertEqual(inp_list, loaded_list, msg=msg)
+        loaded_list = su.io.load(
+            path, fmt=fmt, clz=type(inp), error="raise", iter_line=False
+        )
+        assert list == type(loaded_list), msg
+        assert inp_list == loaded_list, msg
 
         # Test iter_line=True
-        for loaded in su.io.load(path, fmt=fmt, clz=type(inp), error="raise", iter_line=True):
-            self.assertEqual(type(inp), type(loaded), msg=msg)
-            self.assertEqual(inp, loaded, msg=msg)
+        for loaded in su.io.load(
+            path, fmt=fmt, clz=type(inp), error="raise", iter_line=True
+        ):
+            assert type(inp) == type(loaded), msg
+            assert inp == loaded, msg
 
         su.io.rm(path)
+
+    for fname, fmt, inputs in FMTS_INPUTS_LINE_MODE:
+        for inp in inputs:
+            _test_dump_load_line_mode(fname, fmt, inp)
