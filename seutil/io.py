@@ -225,13 +225,13 @@ def mktmp_dir(
 
 class FmtProperty(NamedTuple):
     # The function used by dump
-    # * list_like=False:  takes a file-object and obj as input, writes the obj to the file-object
-    # * list_like=True:  takes an item in the obj as input (from for loop), returns one line of text *without* "\n"
+    # * line_mode=False:  takes a file-object and obj as input, writes the obj to the file-object
+    # * line_mode=True:  takes an item in the obj as input (from for loop), returns one line of text *without* "\n"
     writer: Union[Callable[[io.IOBase, Any], None], Callable[[Any], str]]
 
     # The function used by load
-    # * list_like=False:  takes a file-object as input, reads the entire file and returns the obtained obj
-    # * list_like=True:  takes one line of text as input, returns the obtained obj
+    # * line_mode=False:  takes a file-object as input, reads the entire file and returns the obtained obj
+    # * line_mode=True:  takes one line of text as input, returns the obtained obj
     reader: Union[Callable[[io.IOBase], Any], Callable[[str], Any]]
 
     # File extensions, used for format inference; the first extension is used for output
