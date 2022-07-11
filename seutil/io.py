@@ -344,7 +344,10 @@ def serialize(
         return {k: serialize(v, fmt) for k, v in obj._asdict().items()}
     elif dataclasses.is_dataclass(obj):
         # Dataclass
-        return {f.name: serialize(getattr(obj, f.name), fmt) for f in dataclasses.fields(obj)}
+        return {
+            f.name: serialize(getattr(obj, f.name), fmt)
+            for f in dataclasses.fields(obj)
+        }
     elif isinstance(obj, (list, set, tuple)):
         # List-like: uniform to list; recursively serialize content
         return [serialize(item, fmt) for item in obj]
@@ -567,7 +570,7 @@ def deserialize(
             if hasattr(clz, "_field_types"):
                 # for Python <3.9
                 t = clz._field_types.get(f)
-            elif hasattr(clz, '__annotations__'):
+            elif hasattr(clz, "__annotations__"):
                 # for Python >=3.9
                 t = clz.__annotations__.get(f)
             else:
