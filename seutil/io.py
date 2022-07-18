@@ -18,6 +18,7 @@ from typing import (
     NamedTuple,
     Optional,
     Type,
+    TypeVar,
     Union,
     get_type_hints,
 )
@@ -316,10 +317,16 @@ def infer_fmt_from_ext(ext: str, default: Optional[Fmt] = None) -> Fmt:
         raise RuntimeError(f'Cannot infer format for extension "{ext}"')
 
 
+# object before serialization
+TObj = TypeVar("TObj")
+# data after serialization, usually contain only primitive types and simple list and dict structures, that can be directly stored to disk
+TData = TypeVar("TData")
+
+
 def serialize(
-    obj: object,
+    obj: TObj,
     fmt: Optional[Fmt] = None,
-) -> object:
+) -> TData:
     """
     Serializes an object into a data structure with only primitive types, list, dict.
     If fmt is provided, its formatting constraints are taken into account. Supported fmts:
@@ -379,7 +386,7 @@ def serialize(
 
 
 class DeserializationError(RuntimeError):
-    def __init__(self, data, clz: Optional[Union[Type, str]], reason: str):
+    def __init__(self, data: TData, clz: Optional[Union[Type, str]], reason: str):
         self.data = data
         self.clz = clz
         self.reason = reason
@@ -392,10 +399,10 @@ _NON_TYPE = type(None)
 
 
 def deserialize(
-    data,
+    data: TObj,
     clz: Optional[Union[Type, str]] = None,
     error: str = "ignore",
-):
+) -> TData:
     """
     Deserializes some data (with only primitive types, list, dict) to an object with
     proper types.

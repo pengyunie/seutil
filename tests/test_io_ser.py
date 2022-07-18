@@ -1,0 +1,181 @@
+import collections
+import dataclasses
+import operator
+from pathlib import Path
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Tuple
+import warnings
+
+import pytest
+
+import seutil as su
+from seutil.io import TObj, TData
+from recordclass import RecordClass
+
+
+_MISSING = object()
+
+
+def check_serialization_ok(
+    obj: TObj,
+    data: TData = _MISSING,
+    clz: Optional[type] = None,
+    obj_eq: Callable[[TObj, TObj], bool] = operator.__eq__,
+    data_eq: Callable[[TData, TData], bool] = operator.__eq__,
+):
+    """Common checks for serialization/deserialization."""
+    if clz is None:
+        clz = type(obj)
+    ser = su.io.serialize(obj)
+    if data is not _MISSING:
+        assert data_eq(data, ser)
+    else:
+        print(f"The serialized form of {obj} is: {ser}")
+        warnings.warn("Weak serialization check without expected data provided")
+
+    deser = su.io.deserialize(ser, clz)
+    assert obj_eq(obj, deser)
+
+
+@pytest.mark.parametrize(
+    "obj",
+    [
+        # None type
+        None,
+        # bool
+        True,
+        False,
+        # int
+        123,
+        # float
+        42.24,
+        3.1415926535,
+        float("inf"),
+        # str
+        "Hello, world!",
+    ],
+)
+def test_ser_primitives(obj):
+    check_serialization_ok(obj=obj, data=obj)
+
+
+@pytest.mark.xfail(reason="These python primitive types are not supported")
+@pytest.mark.parametrize(
+    "obj",
+    [
+        # bytes
+        b"Hello, world!",
+        # complex
+        12 + 3j,
+    ],
+)
+def test_ser_primitives_unsupported(obj):
+    check_serialization_ok(obj=obj, data=obj)
+
+
+@pytest.mark.parametrize(
+    "obj",
+    [
+        [],
+        [1, 2, 3],
+        [1, 42.24, "Hello, world!"],
+        list(range(100)),
+        [1, [1, 1], [[1,], [2,], [1,]]],  # fmt: skip
+    ],
+)
+def test_ser_list(obj):
+    check_serialization_ok(obj=obj, data=obj)
+
+
+def test_ser_tuple():
+    check_serialization_ok(
+        obj=("tuple", "becomes", "list", "after", "ser"),
+        data=["tuple", "becomes", "list", "after", "ser"],
+    )
+
+
+def test_ser_set():
+    check_serialization_ok(
+        obj={"set", "becomes", "list", "modulo", "order"},
+        data=["set", "becomes", "list", "modulo", "order"],
+        data_eq=lambda a, b: sorted(a) == sorted(b),
+    )
+
+
+def test_ser_tuple_of_list_like():
+    check_serialization_ok(
+        # fmt: off
+        obj=([1, 2.2], (123, "a"), {"only one item otherwise hard to test"}),
+        data=[[1, 2.2], [123, "a"], ["only one item otherwise hard to test"]],
+        # fmt: on
+        clz=Tuple[list, tuple, set],
+    )
+
+
+def test_ser_named_tuple():
+    class ExampleNamedTuple1(NamedTuple):
+        a: int
+        b: float
+        c: Tuple[int, int, int] = None
+        d: int = 77
+
+    check_serialization_ok(
+        ExampleNamedTuple1(1, 2.3, (4, 5, 6)),
+        {"a": 1, "b": 2.3, "c": [4, 5, 6], "d": 77},
+    )
+
+
+""" ExampleNamedTuple2 = collections.namedtuple("ExampleNamedTuple2", ["e", "f", "g"])
+
+
+class ExampleRecordClass(RecordClass):
+    h: int
+    i: float
+    j: Dict[str, float] = None
+    k: Optional[ExampleNamedTuple2] = None
+
+
+@dataclasses.dataclass
+class ExampleInnerDataclass:
+    q: int
+
+    def serialize(self) -> str:
+        return str(self.q)
+
+    @classmethod
+    def deserialize(cls, data: str) -> "ExampleInnerDataclass":
+        return ExampleInnerDataclass(int(data))
+
+
+@dataclasses.dataclass
+class ExampleOuterDataclass:
+    r: ExampleInnerDataclass
+
+
+@dataclasses.dataclass
+class ExampleDataclass:
+    ell: int
+    m: float
+    n: Dict[str, float] = None
+    o: Optional[ExampleNamedTuple2] = None
+    p: str = dataclasses.field(init=False)
+
+    def __post_init__(self):
+        self.p = str(self.ell) + str(self.m)
+
+
+JSON_INPUTS: List[Any] = [
+    {"xyz": 123, "abc": "def"},
+    collections.Counter({"a": 3, "c": 4}),
+    ExampleNamedTuple2(e=99, f=[3, 5], g=42.0),
+    ExampleRecordClass(h=4, i=0.5, j={"a": 4, "b": 6.0}, k=None),
+    ExampleOuterDataclass(ExampleInnerDataclass(3)),
+    ExampleDataclass(ell=4, m=0.5, n={"a": 4, "b": 6.0}, o=None),
+]
+# override non-init field to ensure the # overridden value is
+# actually loaded rather than recomputed
+JSON_INPUTS[-1].p = "overridden"
+
+YAML_INPUTS: List[Any] = [
+    {34: 56},
+]
+ """
