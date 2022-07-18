@@ -2,8 +2,7 @@ import collections
 import dataclasses
 import operator
 import warnings
-from pathlib import Path
-from typing import Any, Callable, Dict, List, NamedTuple, Optional, Tuple
+from typing import Callable, Dict, NamedTuple, Optional, Tuple
 
 import pytest
 import seutil as su
@@ -163,69 +162,131 @@ def test_ser_ordered_dict():
         )
 
 
-def test_ser_named_tuple():
-    class ExampleNamedTuple1(NamedTuple):
+def test_ser_named_tuple_class():
+    class ExampleNamedTuple(NamedTuple):
         a: int
         b: float
         c: Tuple[int, int, int] = None
         d: int = 77
 
     check_serialization_ok(
-        ExampleNamedTuple1(1, 2.3, (4, 5, 6)),
-        {"a": 1, "b": 2.3, "c": [4, 5, 6], "d": 77},
+        obj=ExampleNamedTuple(1, 2.3, (4, 5, 6)),
+        data={"a": 1, "b": 2.3, "c": [4, 5, 6], "d": 77},
     )
 
 
-""" ExampleNamedTuple2 = collections.namedtuple("ExampleNamedTuple2", ["e", "f", "g"])
+def test_ser_named_tuple_func():
+    ExampleNamedTuple = collections.namedtuple("ExampleNamedTuple", ["e", "f", "g"])
+    check_serialization_ok(
+        obj=ExampleNamedTuple(99, [3, 5], 42.0),
+        data={"e": 99, "f": [3, 5], "g": 42.0},
+    )
 
 
-class ExampleRecordClass(RecordClass):
-    h: int
-    i: float
-    j: Dict[str, float] = None
-    k: Optional[ExampleNamedTuple2] = None
+def test_ser_record_class():
+    ExampleNamedTuple = collections.namedtuple("ExampleNamedTuple", ["e", "f", "g"])
+
+    class ExampleRecordClass(RecordClass):
+        h: int
+        i: float
+        j: Dict[str, float] = None
+        k: Optional[ExampleNamedTuple] = None
+
+    check_serialization_ok(
+        obj=ExampleRecordClass(
+            h=4, i=0.5, j={"a": 4, "b": 6.0}, k=ExampleNamedTuple(99, [3, 5], 42.0)
+        ),
+        data={
+            "h": 4,
+            "i": 0.5,
+            "j": {"a": 4, "b": 6.0},
+            "k": {"e": 99, "f": [3, 5], "g": 42.0},
+        },
+    )
 
 
-@dataclasses.dataclass
-class ExampleInnerDataclass:
-    q: int
+def test_ser_data_class():
+    ExampleNamedTuple = collections.namedtuple("ExampleNamedTuple", ["e", "f", "g"])
 
-    def serialize(self) -> str:
-        return str(self.q)
+    @dataclasses.dataclass
+    class ExampleDataClass:
+        h: int
+        i: float
+        j: Dict[str, float] = None
+        k: Optional[ExampleNamedTuple] = None
 
-    @classmethod
-    def deserialize(cls, data: str) -> "ExampleInnerDataclass":
-        return ExampleInnerDataclass(int(data))
-
-
-@dataclasses.dataclass
-class ExampleOuterDataclass:
-    r: ExampleInnerDataclass
-
-
-@dataclasses.dataclass
-class ExampleDataclass:
-    ell: int
-    m: float
-    n: Dict[str, float] = None
-    o: Optional[ExampleNamedTuple2] = None
-    p: str = dataclasses.field(init=False)
-
-    def __post_init__(self):
-        self.p = str(self.ell) + str(self.m)
+    check_serialization_ok(
+        obj=ExampleDataClass(
+            h=4, i=0.5, j={"a": 4, "b": 6.0}, k=ExampleNamedTuple(99, [3, 5], 42.0)
+        ),
+        data={
+            "h": 4,
+            "i": 0.5,
+            "j": {"a": 4, "b": 6.0},
+            "k": {"e": 99, "f": [3, 5], "g": 42.0},
+        },
+    )
 
 
-JSON_INPUTS: List[Any] = [
-    ExampleNamedTuple2(e=99, f=[3, 5], g=42.0),
-    ExampleRecordClass(h=4, i=0.5, j={"a": 4, "b": 6.0}, k=None),
-    ExampleOuterDataclass(ExampleInnerDataclass(3)),
-    ExampleDataclass(ell=4, m=0.5, n={"a": 4, "b": 6.0}, o=None),
-]
-# override non-init field to ensure the # overridden value is
-# actually loaded rather than recomputed
-JSON_INPUTS[-1].p = "overridden"
+def test_ser_data_class_customized():
+    @dataclasses.dataclass
+    class ExampleDataClass:
+        a: int
+        b: float
 
-YAML_INPUTS: List[Any] = [
-    {34: 56},
-]
- """
+        def serialize(self) -> Tuple[int, float]:
+            return (self.a, self.b)
+
+        @classmethod
+        def deserialize(cls, data: Tuple[int, float]) -> "ExampleDataClass":
+            return cls(data[0], data[1])
+
+    check_serialization_ok(
+        obj=ExampleDataClass(1, 2.3),
+        data=(1, 2.3),
+    )
+
+
+def test_ser_inner_data_class_customized():
+    @dataclasses.dataclass
+    class ExampleInnerDataclass:
+        q: int
+
+        def serialize(self) -> str:
+            return str(self.q)
+
+        @classmethod
+        def deserialize(cls, data: str) -> "ExampleInnerDataclass":
+            return ExampleInnerDataclass(int(data))
+
+    @dataclasses.dataclass
+    class ExampleOuterDataclass:
+        r: ExampleInnerDataclass
+
+    check_serialization_ok(
+        obj=ExampleOuterDataclass(ExampleInnerDataclass(4)),
+        data={"r": "4"},
+    )
+
+
+def test_ser_data_class_post_init():
+    @dataclasses.dataclass
+    class ExampleDataclass:
+        a: int
+        b: float
+        c: str = dataclasses.field(init=False)
+
+        def __post_init__(self):
+            self.c = str(self.a) + str(self.b)
+
+    obj = ExampleDataclass(1, 2.3)
+    check_serialization_ok(
+        obj=obj,
+        data={"a": 1, "b": 2.3, "c": "12.3"},
+    )
+
+    obj.c = "overridden"
+    check_serialization_ok(
+        obj=obj,
+        data={"a": 1, "b": 2.3, "c": "overridden"},
+    )
