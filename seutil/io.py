@@ -22,6 +22,7 @@ from typing import (
     Union,
     get_type_hints,
 )
+import warnings
 
 import recordclass
 import typing_inspect
@@ -40,7 +41,14 @@ __all__ = [
     "load",
     "dump",
     "DeserializationError",
+    "InfoLossWarning",
 ]
+
+
+class InfoLossWarning(Warning):
+    """To indicate that some information could be lost during i/o operation"""
+
+    pass
 
 
 # ==========
@@ -530,8 +538,9 @@ def deserialize(
                 return data
 
         if clz_origin == collections.OrderedDict:
-            raise RuntimeWarning(
-                f"The order of items in OrderedDict may not be preserved"
+            warnings.warn(
+                f"The order of items in OrderedDict may not be preserved during deserialization",
+                InfoLossWarning,
             )
 
         # Unpack dict
@@ -543,7 +552,9 @@ def deserialize(
         }
         if clz_origin != dict:
             # Convert to appropriate type
-            return clz_origin(ret)
+            obj_origin = clz_origin()
+            obj_origin.update(ret)
+            return obj_origin
         else:
             return ret
 

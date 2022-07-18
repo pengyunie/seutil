@@ -1,16 +1,14 @@
 import collections
 import dataclasses
 import operator
+import warnings
 from pathlib import Path
 from typing import Any, Callable, Dict, List, NamedTuple, Optional, Tuple
-import warnings
 
 import pytest
-
 import seutil as su
-from seutil.io import TObj, TData
 from recordclass import RecordClass
-
+from seutil.io import TData, TObj
 
 _MISSING = object()
 
@@ -86,18 +84,17 @@ def test_ser_list(obj):
     check_serialization_ok(obj=obj, data=obj)
 
 
+@pytest.mark.xfail()
+def test_ser_ouroboros_list():
+    l = []
+    l.append(l)
+    check_serialization_ok(obj=l)
+
+
 def test_ser_tuple():
     check_serialization_ok(
         obj=("tuple", "becomes", "list", "after", "ser"),
         data=["tuple", "becomes", "list", "after", "ser"],
-    )
-
-
-def test_ser_set():
-    check_serialization_ok(
-        obj={"set", "becomes", "list", "modulo", "order"},
-        data=["set", "becomes", "list", "modulo", "order"],
-        data_eq=lambda a, b: sorted(a) == sorted(b),
     )
 
 
@@ -109,6 +106,61 @@ def test_ser_tuple_of_list_like():
         # fmt: on
         clz=Tuple[list, tuple, set],
     )
+
+
+def test_ser_set():
+    check_serialization_ok(
+        obj={"set", "becomes", "list", "modulo", "order"},
+        data=["set", "becomes", "list", "modulo", "order"],
+        data_eq=lambda a, b: sorted(a) == sorted(b),
+    )
+
+
+@pytest.mark.xfail(reason="to be added soon")
+def test_ser_deque():
+    check_serialization_ok(
+        obj=collections.deque([1, 2, 3]),
+        data=[1, 2, 3],
+    )
+
+
+@pytest.mark.parametrize(
+    "obj",
+    [
+        {},
+        {"a": 1, "b": 2.3, "c": [4, 5, 6], "d": "hello", "e": None},
+        {"nested": {"dict": {"should": {"work": True}}}},
+    ],
+)
+def test_ser_dict(obj):
+    check_serialization_ok(
+        obj=obj,
+        data=obj,
+    )
+
+
+def test_ser_defaultdict():
+    d = collections.defaultdict(int)
+    d["a"] = 1
+    check_serialization_ok(
+        obj=d,
+        data={"a": 1},
+    )
+
+
+def test_ser_counter():
+    check_serialization_ok(
+        obj=collections.Counter({"a": 1, "b": 2, "c": 3}),
+        data={"a": 1, "b": 2, "c": 3},
+    )
+
+
+def test_ser_ordered_dict():
+    with pytest.warns(su.io.InfoLossWarning):
+        check_serialization_ok(
+            obj=collections.OrderedDict([("a", 1), ("b", 2), ("c", 3)]),
+            data={"a": 1, "b": 2, "c": 3},
+        )
 
 
 def test_ser_named_tuple():
@@ -164,8 +216,6 @@ class ExampleDataclass:
 
 
 JSON_INPUTS: List[Any] = [
-    {"xyz": 123, "abc": "def"},
-    collections.Counter({"a": 3, "c": 4}),
     ExampleNamedTuple2(e=99, f=[3, 5], g=42.0),
     ExampleRecordClass(h=4, i=0.5, j={"a": 4, "b": 6.0}, k=None),
     ExampleOuterDataclass(ExampleInnerDataclass(3)),
