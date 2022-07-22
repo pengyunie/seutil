@@ -8,11 +8,13 @@ import pickle as pkl
 import pydoc
 import shutil
 import tempfile
+import warnings
 from enum import Enum
 from pathlib import Path
 from typing import (
     Any,
     Callable,
+    Dict,
     Iterator,
     List,
     NamedTuple,
@@ -22,7 +24,6 @@ from typing import (
     Union,
     get_type_hints,
 )
-import warnings
 
 import recordclass
 import typing_inspect
@@ -228,101 +229,8 @@ def mktmp_dir(
 
 
 # ==========
-# multi-format dumping/loading with serialization
+# object (de)serialization
 # ==========
-
-
-class FmtProperty(NamedTuple):
-    # The function used by dump
-    # * line_mode=False:  takes a file-object and obj as input, writes the obj to the file-object
-    # * line_mode=True:  takes an item in the obj as input (from for loop), returns one line of text *without* "\n"
-    writer: Union[Callable[[io.IOBase, Any], None], Callable[[Any], str]]
-
-    # The function used by load
-    # * line_mode=False:  takes a file-object as input, reads the entire file and returns the obtained obj
-    # * line_mode=True:  takes one line of text as input, returns the obtained obj
-    reader: Union[Callable[[io.IOBase], Any], Callable[[str], Any]]
-
-    # File extensions, used for format inference; the first extension is used for output
-    exts: List[str] = None
-
-    # If the file should be opened in binary mode
-    binary: bool = False
-
-    # If the file should be read/writen one line at a time
-    line_mode: bool = False
-
-    # If this format requires (de)serialization
-    serialize: bool = False
-
-
-class Fmt(FmtProperty, Enum):
-    # === txt ===
-    txt = FmtProperty(
-        writer=lambda f, obj: f.write(str(obj)),
-        reader=lambda f: f.read(),
-        exts=["txt"],
-    )
-    # === pickle ===
-    pickle = FmtProperty(
-        writer=lambda f, obj: pkl.dump(obj, f),
-        reader=lambda f: pkl.load(f),
-        exts=["pkl", "pickle"],
-        binary=True,
-    )
-    # === json ===
-    json = FmtProperty(
-        writer=lambda f, obj: json.dump(obj, f, sort_keys=True),
-        reader=lambda f: json.load(f),
-        exts=["json"],
-        serialize=True,
-    )
-    # Use yaml loader to allow formatting errors (e.g., trailing commas), but cannot handle unprintable chars
-    jsonFlexible = json._replace(reader=lambda f: yaml.load(f, Loader=yaml.FullLoader))
-    # Pretty-print version with sorting keys
-    jsonPretty = json._replace(
-        writer=lambda f, obj: json.dump(obj, f, sort_keys=True, indent=4),
-    )
-    # Pretty-print version without sorting keys
-    jsonNoSort = json._replace(
-        writer=lambda f, obj: json.dump(obj, f, indent=4),
-    )
-    # === jsonl (json list) ===
-    jsonList = FmtProperty(
-        writer=lambda item: json.dumps(item),
-        reader=lambda line: json.loads(line),
-        exts=["jsonl"],
-        line_mode=True,
-        serialize=True,
-    )
-    # === text list ===
-    txtList = FmtProperty(
-        writer=lambda item: str(item),
-        reader=lambda line: line.replace("\n", ""),
-        exts=["txt"],
-        line_mode=True,
-    )
-    # === yaml ===
-    yaml = FmtProperty(
-        writer=lambda f, obj: yaml.dump(obj, f),
-        reader=lambda f: yaml.load(f, Loader=yaml.FullLoader),
-        exts=["yml", "yaml"],
-        serialize=True,
-    )
-
-
-def infer_fmt_from_ext(ext: str, default: Optional[Fmt] = None) -> Fmt:
-    if ext.startswith("."):
-        ext = ext[1:]
-
-    for fmt in Fmt:
-        if fmt.exts is not None and ext in fmt.exts:
-            return fmt
-
-    if default is not None:
-        return default
-    else:
-        raise RuntimeError(f'Cannot infer format for extension "{ext}"')
 
 
 # object before serialization
@@ -331,14 +239,81 @@ TObj = TypeVar("TObj")
 TData = TypeVar("TData")
 
 
+_NON_TYPE = type(None)
+
+
+_SERIALIZERS: Dict[type, Callable[[TObj], TData]] = {}
+_DESERIALIZERS: Dict[type, Callable[[TData], TObj]] = {}
+
+
+def register_type(
+    clz: Type,
+    serializer: Optional[Callable[[TObj], TData]] = None,
+    deserializer: Optional[Callable[[TData], TObj]] = None,
+    replace: bool = True,
+) -> bool:
+    """
+    Register customized serializer and/or deserializer of a type.
+    The registered (de)serializer is only good for this particular type and *not* for its subtypes.
+    If an inheritable (de)serializer is desired, declare a method in the base class called `(de)serializer` instead.
+
+    :param clz: the type to register.
+    :param serializer: the serializer, can be None if only registering a deserializer.
+    :param deserializer: the deserializer, can be None if only registering a serializer.
+    :param replace: if True, replace the existing (de)serializer if any; otherwise, do not change the existing (de)serializer.
+    :return: if any new (de)serializer is registered.
+    """
+    changed = False
+
+    if serializer is not None:
+        if clz in _SERIALIZERS and not replace:
+            pass
+        else:
+            _SERIALIZERS[clz] = serializer
+            changed = True
+    if deserializer is not None:
+        if clz in _DESERIALIZERS and not replace:
+            pass
+        else:
+            _DESERIALIZERS[clz] = deserializer
+            changed = True
+
+    return changed
+
+
+def unregister_type(
+    clz: Type, serializer: bool = True, deserializer: bool = True
+) -> bool:
+    """
+    Unregister customized serializer and/or deserializer of a type.
+    Similar to register_type, the unregistering only happens for this particular type and *not* for its subtypes.
+
+    :param clz: the type to unregister.
+    :param serializer: if True (default), unregister the serializer.
+    :param deserializer: if True (default), unregister the deserializer.
+    :return: if any (de)serializer is unregistered.
+    """
+    changed = False
+    if serializer:
+        if clz in _SERIALIZERS:
+            del _SERIALIZERS[clz]
+            changed = True
+    if deserializer:
+        if clz in _DESERIALIZERS:
+            del _DESERIALIZERS[clz]
+            changed = True
+    return changed
+
+
 def serialize(
     obj: TObj,
-    fmt: Optional[Fmt] = None,
+    fmt: Optional["Fmt"] = None,
 ) -> TData:
     """
     Serializes an object into a data structure with only primitive types, list, dict.
     If fmt is provided, its formatting constraints are taken into account. Supported fmts:
     * json, jsonPretty, jsonNoSort, jsonList: dict only have str keys.
+    TODO: move this considering of formatting constraints to a spearate function, and let it automatically happen during dump; probably also add a reverse function which happens during load.
 
     :param obj: the object to be serialized.
     :param fmt: (optional) the target format.
@@ -385,12 +360,13 @@ def serialize(
         else:
             # Newer versions of recordclass
             return {f: serialize(getattr(obj, f), fmt) for f in obj.__fields__}
+    elif type(obj) in _SERIALIZERS:
+        # Use registered serializer if exists
+        return _SERIALIZERS[type(obj)](obj)
     else:
         raise TypeError(
             f"Cannot serialize object of type {type(obj)}, please consider writing a serialize() function"
         )
-
-    # TODO: handle numpy arrays, pandas structures, pytorch structures, etc.
 
 
 class DeserializationError(RuntimeError):
@@ -401,9 +377,6 @@ class DeserializationError(RuntimeError):
 
     def __str__(self):
         return f"Cannot deserialize the following data to {self.clz}: {self.reason}\n  {self.data}"
-
-
-_NON_TYPE = type(None)
 
 
 def deserialize(
@@ -485,6 +458,10 @@ def deserialize(
             raise DeserializationError(data, clz, "None data for non-None type")
         else:
             return data
+
+    # Use registered deserializer if exists
+    if clz in _DESERIALIZERS:
+        return _DESERIALIZERS[clz](data)
 
     # List-like types
     if clz_origin in [list, tuple, set, collections.deque, frozenset]:
@@ -627,6 +604,146 @@ def deserialize(
         )
     else:
         return data
+
+
+# register (de)serializers for some popular 3rd party libraries
+
+try:
+    import numpy as np
+
+    register_type(
+        np.ndarray,
+        serializer=lambda x: serialize(x.tolist()),
+        deserializer=lambda x: np.array(x),
+    )
+
+    # integers
+    register_type(np.byte, serializer=np.byte.item, deserializer=np.byte)
+    register_type(np.short, serializer=np.short.item, deserializer=np.short)
+    register_type(np.intc, serializer=np.intc.item, deserializer=np.intc)
+    register_type(np.int_, serializer=np.int_.item, deserializer=np.int_)
+    register_type(np.longlong, serializer=np.longlong.item, deserializer=np.longlong)
+
+    # unsigned integers
+    register_type(np.ubyte, serializer=np.ubyte.item, deserializer=np.ubyte)
+    register_type(np.ushort, serializer=np.ushort.item, deserializer=np.ushort)
+    register_type(np.uintc, serializer=np.uintc.item, deserializer=np.uintc)
+    register_type(np.uint, serializer=np.uint.item, deserializer=np.uint)
+    register_type(np.ulonglong, serializer=np.ulonglong.item, deserializer=np.ulonglong)
+
+    # floats
+    register_type(np.half, serializer=np.half.item, deserializer=np.half)
+    register_type(np.single, serializer=np.single.item, deserializer=np.single)
+    register_type(np.double, serializer=np.double.item, deserializer=np.double)
+    register_type(
+        np.longdouble, serializer=np.longdouble.item, deserializer=np.longdouble
+    )
+
+    # other scalars
+    register_type(np.bool_, serializer=np.bool_.item, deserializer=np.bool_)
+    # TODO: np.datetime64, np.timedelta64, np.object_, np.bytes_, np.str_, np.void, etc.
+
+
+except ImportError:
+    pass
+
+
+# ==========
+# file read and write
+# ==========
+
+
+class FmtProperty(NamedTuple):
+    # The function used by dump
+    # * line_mode=False:  takes a file-object and obj as input, writes the obj to the file-object
+    # * line_mode=True:  takes an item in the obj as input (from for loop), returns one line of text *without* "\n"
+    writer: Union[Callable[[io.IOBase, Any], None], Callable[[Any], str]]
+
+    # The function used by load
+    # * line_mode=False:  takes a file-object as input, reads the entire file and returns the obtained obj
+    # * line_mode=True:  takes one line of text as input, returns the obtained obj
+    reader: Union[Callable[[io.IOBase], Any], Callable[[str], Any]]
+
+    # File extensions, used for format inference; the first extension is used for output
+    exts: List[str] = None
+
+    # If the file should be opened in binary mode
+    binary: bool = False
+
+    # If the file should be read/writen one line at a time
+    line_mode: bool = False
+
+    # If this format requires (de)serialization
+    serialize: bool = False
+
+
+class Fmt(FmtProperty, Enum):
+    # === txt ===
+    txt = FmtProperty(
+        writer=lambda f, obj: f.write(str(obj)),
+        reader=lambda f: f.read(),
+        exts=["txt"],
+    )
+    # === pickle ===
+    pickle = FmtProperty(
+        writer=lambda f, obj: pkl.dump(obj, f),
+        reader=lambda f: pkl.load(f),
+        exts=["pkl", "pickle"],
+        binary=True,
+    )
+    # === json ===
+    json = FmtProperty(
+        writer=lambda f, obj: json.dump(obj, f, sort_keys=True),
+        reader=lambda f: json.load(f),
+        exts=["json"],
+        serialize=True,
+    )
+    # Use yaml loader to allow formatting errors (e.g., trailing commas), but cannot handle unprintable chars
+    jsonFlexible = json._replace(reader=lambda f: yaml.load(f, Loader=yaml.FullLoader))
+    # Pretty-print version with sorting keys
+    jsonPretty = json._replace(
+        writer=lambda f, obj: json.dump(obj, f, sort_keys=True, indent=4),
+    )
+    # Pretty-print version without sorting keys
+    jsonNoSort = json._replace(
+        writer=lambda f, obj: json.dump(obj, f, indent=4),
+    )
+    # === jsonl (json list) ===
+    jsonList = FmtProperty(
+        writer=lambda item: json.dumps(item),
+        reader=lambda line: json.loads(line),
+        exts=["jsonl"],
+        line_mode=True,
+        serialize=True,
+    )
+    # === text list ===
+    txtList = FmtProperty(
+        writer=lambda item: str(item),
+        reader=lambda line: line.replace("\n", ""),
+        exts=["txt"],
+        line_mode=True,
+    )
+    # === yaml ===
+    yaml = FmtProperty(
+        writer=lambda f, obj: yaml.dump(obj, f),
+        reader=lambda f: yaml.load(f, Loader=yaml.FullLoader),
+        exts=["yml", "yaml"],
+        serialize=True,
+    )
+
+
+def infer_fmt_from_ext(ext: str, default: Optional[Fmt] = None) -> Fmt:
+    if ext.startswith("."):
+        ext = ext[1:]
+
+    for fmt in Fmt:
+        if fmt.exts is not None and ext in fmt.exts:
+            return fmt
+
+    if default is not None:
+        return default
+    else:
+        raise RuntimeError(f'Cannot infer format for extension "{ext}"')
 
 
 def dump(
