@@ -30,7 +30,6 @@ setuptools.setup(
         "tqdm>=4.62.3,<4.65.0",
         "typing_inspect>=0.4.0",
         "unidiff>=0.5.5",
-        "varname>=0.7.1",
     ],
     extras_require={
         "dev": ["pytest", "flake8", "black", "pytest-cov"],
