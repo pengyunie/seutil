@@ -9,19 +9,19 @@ up-to-date with the latest Python 3, currently 3.8.
 
 **Mature functions:**
 
-* io: loading/dumping files with serialization support, managing files; 
 * bash: running Bash command; 
+* io: loading/dumping files with serialization support, managing files; 
 * log: for easy setup logging;
+* project: for batch processing of repositories;
 
 **Incubating functions:**
 
-* pbar: improve tqdm’s output in emacs-shell like terminals; 
+* pbar: improve tqdm's output in emacs-shell like terminals; 
 * GitHubUtils: for mining GitHub, using ``PyGitHub`` package;
 * MiscUtils: for whatever functions that may not belong to other classes; 
 * Stream: similar to java.utils.Stream; 
 * TimeUtils: for adding time constrain on an operation; 
 * latex.*: for writing macros and tables for latex documents; 
-* project.*: for batch processing of repositories;
 
 **Deprecated functions:**
 
