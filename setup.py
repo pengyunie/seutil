@@ -33,6 +33,6 @@ setuptools.setup(
     ],
     extras_require={
         "dev": ["pytest", "flake8", "black", "pytest-cov"],
-        "compat-io": ["numpy", "pandas", "torch"],
+        "io-3rd-party": ["numpy", "pandas", "torch"],
     },
 )

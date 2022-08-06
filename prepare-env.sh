@@ -34,7 +34,7 @@ function prepare_conda_env() {
         conda activate $env_name
 
         # Install libraries
-        pip install -e .[dev,compat-io]
+        pip install -e .[dev,io-3rd-party]
 }
 
 
