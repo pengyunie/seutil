@@ -8,16 +8,19 @@ import pickle as pkl
 import pydoc
 import shutil
 import tempfile
+import warnings
 from enum import Enum
 from pathlib import Path
 from typing import (
     Any,
     Callable,
+    Dict,
     Iterator,
     List,
     NamedTuple,
     Optional,
     Type,
+    TypeVar,
     Union,
     get_type_hints,
 )
@@ -39,7 +42,14 @@ __all__ = [
     "load",
     "dump",
     "DeserializationError",
+    "InfoLossWarning",
 ]
+
+
+class InfoLossWarning(Warning):
+    """To indicate that some information could be lost during i/o operation"""
+
+    pass
 
 
 # ==========
@@ -219,19 +229,468 @@ def mktmp_dir(
 
 
 # ==========
-# multi-format dumping/loading with serialization
+# object (de)serialization
+# ==========
+
+
+# object before serialization
+TObj = TypeVar("TObj")
+# data after serialization, usually contain only primitive types and simple list and dict structures, that can be directly stored to disk
+TData = TypeVar("TData")
+
+
+_NON_TYPE = type(None)
+
+
+_SERIALIZERS: Dict[type, Callable[[TObj], TData]] = {}
+_DESERIALIZERS: Dict[type, Callable[[TData], TObj]] = {}
+
+
+def register_type(
+    clz: Type,
+    serializer: Optional[Callable[[TObj], TData]] = None,
+    deserializer: Optional[Callable[[TData], TObj]] = None,
+    replace: bool = True,
+) -> bool:
+    """
+    Register customized serializer and/or deserializer of a type.
+    The registered (de)serializer is only good for this particular type and *not* for its subtypes.
+    If an inheritable (de)serializer is desired, declare a method in the base class called `(de)serializer` instead.
+
+    :param clz: the type to register.
+    :param serializer: the serializer, can be None if only registering a deserializer.
+    :param deserializer: the deserializer, can be None if only registering a serializer.
+    :param replace: if True, replace the existing (de)serializer if any; otherwise, do not change the existing (de)serializer.
+    :return: if any new (de)serializer is registered.
+    """
+    changed = False
+
+    if serializer is not None:
+        if clz in _SERIALIZERS and not replace:
+            pass
+        else:
+            _SERIALIZERS[clz] = serializer
+            changed = True
+    if deserializer is not None:
+        if clz in _DESERIALIZERS and not replace:
+            pass
+        else:
+            _DESERIALIZERS[clz] = deserializer
+            changed = True
+
+    return changed
+
+
+def unregister_type(
+    clz: Type, serializer: bool = True, deserializer: bool = True
+) -> bool:
+    """
+    Unregister customized serializer and/or deserializer of a type.
+    Similar to register_type, the unregistering only happens for this particular type and *not* for its subtypes.
+
+    :param clz: the type to unregister.
+    :param serializer: if True (default), unregister the serializer.
+    :param deserializer: if True (default), unregister the deserializer.
+    :return: if any (de)serializer is unregistered.
+    """
+    changed = False
+    if serializer:
+        if clz in _SERIALIZERS:
+            del _SERIALIZERS[clz]
+            changed = True
+    if deserializer:
+        if clz in _DESERIALIZERS:
+            del _DESERIALIZERS[clz]
+            changed = True
+    return changed
+
+
+def serialize(
+    obj: TObj,
+    fmt: Optional["Fmt"] = None,
+) -> TData:
+    """
+    Serializes an object into a data structure with only primitive types, list, dict.
+    If fmt is provided, its formatting constraints are taken into account. Supported fmts:
+    * json, jsonPretty, jsonNoSort, jsonList: dict only have str keys.
+    TODO: move this considering of formatting constraints to a spearate function, and let it automatically happen during dump; probably also add a reverse function which happens during load.
+
+    :param obj: the object to be serialized.
+    :param fmt: (optional) the target format.
+    :return: the serialized object.
+    """
+    # Examine the type of object and use the appropriate serialization method
+    # Check for simple types first
+    if obj is None:
+        return None
+    elif isinstance(obj, (int, float, str, bool)):
+        # Primitive types: keep as-is
+        return obj
+    elif hasattr(obj, "serialize"):
+        # Call customized serialization method if exists
+        return getattr(obj, "serialize")()
+    elif _is_obj_named_tuple(obj):
+        # NamedTuple
+        return {k: serialize(v, fmt) for k, v in obj._asdict().items()}
+    elif dataclasses.is_dataclass(obj):
+        # Dataclass
+        return {
+            f.name: serialize(getattr(obj, f.name), fmt)
+            for f in dataclasses.fields(obj)
+        }
+    elif isinstance(obj, (list, set, tuple)):
+        # List-like: uniform to list; recursively serialize content
+        return [serialize(item, fmt) for item in obj]
+    elif isinstance(obj, dict):
+        # Dict: recursively serialize content
+        ret = {serialize(k, fmt): serialize(v, fmt) for k, v in obj.items()}
+
+        # Json-like formats constraint: dict key must be str
+        if fmt in [Fmt.json, Fmt.jsonPretty, Fmt.jsonNoSort, Fmt.jsonList]:
+            ret = {str(k): v for k, v in ret.items()}
+        return ret
+    elif isinstance(obj, Enum):
+        # Enum: use name
+        return serialize(obj.name, fmt)
+    elif _is_obj_record_class(obj):
+        # RecordClass: convert to dict
+        if hasattr(obj, "__dict__"):
+            # Older versions of recordclass
+            return {k: serialize(v, fmt) for k, v in obj.__dict__.items()}
+        else:
+            # Newer versions of recordclass
+            return {f: serialize(getattr(obj, f), fmt) for f in obj.__fields__}
+    elif type(obj) in _SERIALIZERS:
+        # Use registered serializer if exists
+        return _SERIALIZERS[type(obj)](obj)
+    else:
+        raise TypeError(
+            f"Cannot serialize object of type {type(obj)}, please consider writing a serialize() function"
+        )
+
+
+class DeserializationError(RuntimeError):
+    def __init__(self, data: TData, clz: Optional[Union[Type, str]], reason: str):
+        self.data = data
+        self.clz = clz
+        self.reason = reason
+
+    def __str__(self):
+        return f"Cannot deserialize the following data to {self.clz}: {self.reason}\n  {self.data}"
+
+
+def deserialize(
+    data: TObj,
+    clz: Optional[Union[Type, str]] = None,
+    error: str = "ignore",
+) -> TData:
+    """
+    Deserializes some data (with only primitive types, list, dict) to an object with
+    proper types.
+
+    :param data: the data to be deserialized.
+    :param clz: the targeted type of deserialization (or its name); if None, will return
+        the data as-is.
+    :param error: what to do when the deserialization has problem:
+        * raise: raise a DeserializationError.
+        * ignore (default): return the data as-is.
+    :return: the deserialized data.
+    """
+    if clz is None:
+        return data
+
+    assert error in ["raise", "ignore"]
+
+    # Resolve type by name
+    # TODO: cannot resolve generic types
+    if isinstance(clz, str):
+        clz = pydoc.locate(clz)
+
+    # NoneType
+    if clz == _NON_TYPE:
+        if data is None:
+            return data
+        else:
+            raise DeserializationError(data, clz, "None type received non-None data")
+
+    clz_origin = typing_inspect.get_origin(clz)
+    if clz_origin is None:
+        clz_origin = clz
+        generic = False
+    else:
+        generic = True
+    clz_args = typing_inspect.get_args(clz)
+
+    # print(f"deserialize({data=}, {clz=}, {error=}), {clz_origin=}, {clz_args=}")
+
+    # Optional type: extract inner type
+    if typing_inspect.is_optional_type(clz):
+        if data is None:
+            return None
+        inner_clz = clz_args[0]
+        try:
+            return deserialize(data, inner_clz, error=error)
+        except DeserializationError as e:
+            raise DeserializationError(data, clz, f"(Optional removed) " + e.reason)
+
+    # Union type: try each inner type
+    if typing_inspect.is_union_type(clz):
+        ret = None
+        for inner_clz in clz_args:
+            try:
+                ret = deserialize(data, inner_clz, error="raise")
+            except DeserializationError:
+                continue
+
+        if ret is None:
+            if error == "raise":
+                raise DeserializationError(
+                    data, clz, "All inner types are incompatible"
+                )
+            else:
+                return data
+        else:
+            return ret
+
+    # None data, but not NoneType
+    if data is None:
+        if error == "raise":
+            raise DeserializationError(data, clz, "None data for non-None type")
+        else:
+            return data
+
+    # Use registered deserializer if exists
+    if clz in _DESERIALIZERS:
+        return _DESERIALIZERS[clz](data)
+
+    # List-like types
+    if clz_origin in [list, tuple, set, collections.deque, frozenset]:
+        if not isinstance(data, list):
+            if error == "raise":
+                raise DeserializationError(
+                    data, clz, "Data does not have list structure"
+                )
+            else:
+                return data
+
+        if clz_origin == tuple:
+            # Unpack list to tuple
+            return tuple(
+                [
+                    # If the list has more items than Tuple[xxx] declared (e.g., [1, 2, 3], Tuple[int]), repeat the last declared type
+                    deserialize(
+                        x,
+                        clz_args[min(i, len(clz_args) - 1)] if generic else None,
+                        error=error,
+                    )
+                    for i, x in enumerate(data)
+                ]
+            )
+        else:
+            # Unpack list
+            ret = [
+                deserialize(x, clz_args[0] if generic else None, error=error)
+                for x in data
+            ]
+
+            if clz_origin != list:
+                # Convert to appropriate type
+                return clz_origin(ret)
+            else:
+                return ret
+
+    # Dict-like types
+    if clz_origin in [
+        dict,
+        collections.OrderedDict,
+        collections.defaultdict,
+        collections.Counter,
+    ]:
+        if not isinstance(data, dict):
+            if error == "raise":
+                raise DeserializationError(
+                    data, clz, "Data does not have dict structure"
+                )
+            else:
+                return data
+
+        if clz_origin == collections.OrderedDict:
+            warnings.warn(
+                f"The order of items in OrderedDict may not be preserved during deserialization",
+                InfoLossWarning,
+            )
+
+        # Unpack dict
+        ret = {
+            deserialize(k, clz_args[0] if generic else None, error=error): deserialize(
+                v, clz_args[1] if generic else None, error=error
+            )
+            for k, v in data.items()
+        }
+        if clz_origin != dict:
+            # Convert to appropriate type
+            obj_origin = clz_origin()
+            obj_origin.update(ret)
+            return obj_origin
+        else:
+            return ret
+
+    # Use customized deserialize function, if exists
+    if inspect.isclass(clz) and hasattr(clz, "deserialize"):
+        # TODO: check parameter of the deserialize function
+        return getattr(clz, "deserialize")(data)
+
+    # Enum
+    if inspect.isclass(clz) and issubclass(clz, Enum):
+        if isinstance(data, str):
+            return clz[data]
+        else:
+            if error == "raise":
+                raise DeserializationError(data, clz, "Enum data must be str (name)")
+            else:
+                return data
+
+    # RecordClass
+    if _is_clz_record_class(clz):
+        field_values = {}
+        for f, t in get_type_hints(clz).items():
+            if f in data:
+                field_values[f] = deserialize(data.get(f), t, error=error)
+        return clz(**field_values)
+
+    # NamedTuple
+    if _is_clz_named_tuple(clz):
+        field_values = {}
+        for f in clz._fields:
+            if hasattr(clz, "_field_types"):
+                # for Python <3.9
+                t = clz._field_types.get(f)
+            elif hasattr(clz, "__annotations__"):
+                # for Python >=3.9
+                t = clz.__annotations__.get(f)
+            else:
+                t = None
+            if f in data:
+                field_values[f] = deserialize(data.get(f), t, error=error)
+        return clz(**field_values)
+
+    # DataClass
+    if dataclasses.is_dataclass(clz):
+        init_field_values = {}
+        non_init_field_values = {}
+        for f in dataclasses.fields(clz):
+            if f.name in data:
+                field_values = init_field_values if f.init else non_init_field_values
+                field_values[f.name] = deserialize(
+                    data.get(f.name), f.type, error=error
+                )
+        obj = clz(**init_field_values)
+        for f_name, f_value in non_init_field_values.items():
+            # use object.__setattr__ in case clz is frozen
+            object.__setattr__(obj, f_name, f_value)
+        return obj
+
+    # Primitive types
+    if clz_origin == type(data):
+        return data
+    if clz_origin == float and type(data) == int:
+        return data
+
+    if error == "raise":
+        raise DeserializationError(
+            data,
+            clz,
+            f"Cannot match requested type ({clz} / {clz_origin}) with data's type ({type(data)})",
+        )
+    else:
+        return data
+
+
+# register (de)serializers for some popular 3rd party libraries
+
+try:
+    import numpy as np
+
+    register_type(
+        np.ndarray,
+        serializer=lambda x: serialize(x.tolist()),
+        deserializer=lambda x: np.array(x),
+    )
+
+    # integers
+    register_type(np.byte, serializer=np.byte.item, deserializer=np.byte)
+    register_type(np.short, serializer=np.short.item, deserializer=np.short)
+    register_type(np.intc, serializer=np.intc.item, deserializer=np.intc)
+    register_type(np.int_, serializer=np.int_.item, deserializer=np.int_)
+    register_type(np.longlong, serializer=np.longlong.item, deserializer=np.longlong)
+
+    # unsigned integers
+    register_type(np.ubyte, serializer=np.ubyte.item, deserializer=np.ubyte)
+    register_type(np.ushort, serializer=np.ushort.item, deserializer=np.ushort)
+    register_type(np.uintc, serializer=np.uintc.item, deserializer=np.uintc)
+    register_type(np.uint, serializer=np.uint.item, deserializer=np.uint)
+    register_type(np.ulonglong, serializer=np.ulonglong.item, deserializer=np.ulonglong)
+
+    # floats
+    register_type(np.half, serializer=np.half.item, deserializer=np.half)
+    register_type(np.single, serializer=np.single.item, deserializer=np.single)
+    register_type(np.double, serializer=np.double.item, deserializer=np.double)
+    register_type(
+        np.longdouble, serializer=np.longdouble.item, deserializer=np.longdouble
+    )
+
+    # other scalars
+    register_type(np.bool_, serializer=np.bool_.item, deserializer=np.bool_)
+    # TODO: np.datetime64, np.timedelta64, np.object_, np.bytes_, np.str_, np.void, etc.
+except ImportError:
+    pass
+
+
+try:
+    import pandas as pd
+
+    # series
+    register_type(
+        pd.Series, serializer=lambda x: serialize(x.to_dict()), deserializer=pd.Series
+    )
+
+    # dataframe
+    register_type(
+        pd.DataFrame,
+        serializer=lambda x: serialize(x.to_dict(orient="records")),
+        deserializer=pd.DataFrame.from_records,
+    )
+except ImportError:
+    pass
+
+
+try:
+    import torch
+
+    # tensor
+    register_type(
+        torch.Tensor,
+        serializer=lambda x: serialize(x.tolist()),
+        deserializer=torch.tensor,
+    )
+except ImportError:
+    pass
+
+
+# ==========
+# file read and write
 # ==========
 
 
 class FmtProperty(NamedTuple):
     # The function used by dump
-    # * list_like=False:  takes a file-object and obj as input, writes the obj to the file-object
-    # * list_like=True:  takes an item in the obj as input (from for loop), returns one line of text *without* "\n"
+    # * line_mode=False:  takes a file-object and obj as input, writes the obj to the file-object
+    # * line_mode=True:  takes an item in the obj as input (from for loop), returns one line of text *without* "\n"
     writer: Union[Callable[[io.IOBase, Any], None], Callable[[Any], str]]
 
     # The function used by load
-    # * list_like=False:  takes a file-object as input, reads the entire file and returns the obtained obj
-    # * list_like=True:  takes one line of text as input, returns the obtained obj
+    # * line_mode=False:  takes a file-object as input, reads the entire file and returns the obtained obj
+    # * line_mode=True:  takes one line of text as input, returns the obtained obj
     reader: Union[Callable[[io.IOBase], Any], Callable[[str], Any]]
 
     # File extensions, used for format inference; the first extension is used for output
@@ -314,298 +773,6 @@ def infer_fmt_from_ext(ext: str, default: Optional[Fmt] = None) -> Fmt:
         return default
     else:
         raise RuntimeError(f'Cannot infer format for extension "{ext}"')
-
-
-def serialize(
-    obj: object,
-    fmt: Optional[Fmt] = None,
-) -> object:
-    """
-    Serializes an object into a data structure with only primitive types, list, dict.
-    If fmt is provided, its formatting constraints are taken into account. Supported fmts:
-    * json, jsonPretty, jsonNoSort, jsonList: dict only have str keys.
-
-    :param obj: the object to be serialized.
-    :param fmt: (optional) the target format.
-    :return: the serialized object.
-    """
-    # Examine the type of object and use the appropriate serialization method
-    # Check for simple types first
-    if obj is None:
-        return None
-    elif isinstance(obj, (int, float, str, bool)):
-        # Primitive types: keep as-is
-        return obj
-    elif hasattr(obj, "serialize"):
-        # Call customized serialization method if exists
-        return getattr(obj, "serialize")()
-    elif _is_obj_named_tuple(obj):
-        # NamedTuple
-        return {k: serialize(v, fmt) for k, v in obj._asdict().items()}
-    elif dataclasses.is_dataclass(obj):
-        # Dataclass
-        return {f.name: serialize(getattr(obj, f.name), fmt) for f in dataclasses.fields(obj)}
-    elif isinstance(obj, (list, set, tuple)):
-        # List-like: uniform to list; recursively serialize content
-        return [serialize(item, fmt) for item in obj]
-    elif isinstance(obj, dict):
-        # Dict: recursively serialize content
-        ret = {serialize(k, fmt): serialize(v, fmt) for k, v in obj.items()}
-
-        # Json-like formats constraint: dict key must be str
-        if fmt in [Fmt.json, Fmt.jsonPretty, Fmt.jsonNoSort, Fmt.jsonList]:
-            ret = {str(k): v for k, v in ret.items()}
-        return ret
-    elif isinstance(obj, Enum):
-        # Enum: use name
-        return serialize(obj.name, fmt)
-    elif _is_obj_record_class(obj):
-        # RecordClass: convert to dict
-        if hasattr(obj, "__dict__"):
-            # Older versions of recordclass
-            return {k: serialize(v, fmt) for k, v in obj.__dict__.items()}
-        else:
-            # Newer versions of recordclass
-            return {f: serialize(getattr(obj, f), fmt) for f in obj.__fields__}
-    else:
-        raise TypeError(
-            f"Cannot serialize object of type {type(obj)}, please consider writing a serialize() function"
-        )
-
-    # TODO: handle numpy arrays, pandas structures, pytorch structures, etc.
-
-
-class DeserializationError(RuntimeError):
-    def __init__(self, data, clz: Optional[Union[Type, str]], reason: str):
-        self.data = data
-        self.clz = clz
-        self.reason = reason
-
-    def __str__(self):
-        return f"Cannot deserialize the following data to {self.clz}: {self.reason}\n  {self.data}"
-
-
-_NON_TYPE = type(None)
-
-
-def deserialize(
-    data,
-    clz: Optional[Union[Type, str]] = None,
-    error: str = "ignore",
-):
-    """
-    Deserializes some data (with only primitive types, list, dict) to an object with
-    proper types.
-
-    :param data: the data to be deserialized.
-    :param clz: the targeted type of deserialization (or its name); if None, will return
-        the data as-is.
-    :param error: what to do when the deserialization has problem:
-        * raise: raise a DeserializationError.
-        * ignore (default): return the data as-is.
-    :return: the deserialized data.
-    """
-    if clz is None:
-        return data
-
-    assert error in ["raise", "ignore"]
-
-    # Resolve type by name
-    # TODO: cannot resolve generic types
-    if isinstance(clz, str):
-        clz = pydoc.locate(clz)
-
-    # NoneType
-    if clz == _NON_TYPE:
-        if data is None:
-            return data
-        else:
-            raise DeserializationError(data, clz, "None type received non-None data")
-
-    clz_origin = typing_inspect.get_origin(clz)
-    if clz_origin is None:
-        clz_origin = clz
-        generic = False
-    else:
-        generic = True
-    clz_args = typing_inspect.get_args(clz)
-
-    # print(f"deserialize({data=}, {clz=}, {error=}), {clz_origin=}, {clz_args=}")
-
-    # Optional type: extract inner type
-    if typing_inspect.is_optional_type(clz):
-        if data is None:
-            return None
-        inner_clz = clz_args[0]
-        try:
-            return deserialize(data, inner_clz, error=error)
-        except DeserializationError as e:
-            raise DeserializationError(data, clz, f"(Optional removed) " + e.reason)
-
-    # Union type: try each inner type
-    if typing_inspect.is_union_type(clz):
-        ret = None
-        for inner_clz in clz_args:
-            try:
-                ret = deserialize(data, inner_clz, error="raise")
-            except DeserializationError:
-                continue
-
-        if ret is None:
-            if error == "raise":
-                raise DeserializationError(
-                    data, clz, "All inner types are incompatible"
-                )
-            else:
-                return data
-        else:
-            return ret
-
-    # None data, but not NoneType
-    if data is None:
-        if error == "raise":
-            raise DeserializationError(data, clz, "None data for non-None type")
-        else:
-            return data
-
-    # List-like types
-    if clz_origin in [list, tuple, set, collections.deque, frozenset]:
-        if not isinstance(data, list):
-            if error == "raise":
-                raise DeserializationError(
-                    data, clz, "Data does not have list structure"
-                )
-            else:
-                return data
-
-        if clz_origin == tuple:
-            # Unpack list to tuple
-            return tuple(
-                [
-                    # If the list has more items than Tuple[xxx] declared (e.g., [1, 2, 3], Tuple[int]), repeat the last declared type
-                    deserialize(
-                        x,
-                        clz_args[min(i, len(clz_args) - 1)] if generic else None,
-                        error=error,
-                    )
-                    for i, x in enumerate(data)
-                ]
-            )
-        else:
-            # Unpack list
-            ret = [
-                deserialize(x, clz_args[0] if generic else None, error=error)
-                for x in data
-            ]
-
-            if clz_origin != list:
-                # Convert to appropriate type
-                return clz_origin(ret)
-            else:
-                return ret
-
-    # Dict-like types
-    if clz_origin in [
-        dict,
-        collections.OrderedDict,
-        collections.defaultdict,
-        collections.Counter,
-    ]:
-        if not isinstance(data, dict):
-            if error == "raise":
-                raise DeserializationError(
-                    data, clz, "Data does not have dict structure"
-                )
-            else:
-                return data
-
-        if clz_origin == collections.OrderedDict:
-            raise RuntimeWarning(
-                f"The order of items in OrderedDict may not be preserved"
-            )
-
-        # Unpack dict
-        ret = {
-            deserialize(k, clz_args[0] if generic else None, error=error): deserialize(
-                v, clz_args[1] if generic else None, error=error
-            )
-            for k, v in data.items()
-        }
-        if clz_origin != dict:
-            # Convert to appropriate type
-            return clz_origin(ret)
-        else:
-            return ret
-
-    # Use customized deserialize function, if exists
-    if inspect.isclass(clz) and hasattr(clz, "deserialize"):
-        # TODO: check parameter of the deserialize function
-        return getattr(clz, "deserialize")(data)
-
-    # Enum
-    if inspect.isclass(clz) and issubclass(clz, Enum):
-        if isinstance(data, str):
-            return clz[data]
-        else:
-            if error == "raise":
-                raise DeserializationError(data, clz, "Enum data must be str (name)")
-            else:
-                return data
-
-    # RecordClass
-    if _is_clz_record_class(clz):
-        field_values = {}
-        for f, t in get_type_hints(clz).items():
-            if f in data:
-                field_values[f] = deserialize(data.get(f), t, error=error)
-        return clz(**field_values)
-
-    # NamedTuple
-    if _is_clz_named_tuple(clz):
-        field_values = {}
-        for f in clz._fields:
-            if hasattr(clz, "_field_types"):
-                # for Python <3.9
-                t = clz._field_types.get(f)
-            elif hasattr(clz, '__annotations__'):
-                # for Python >=3.9
-                t = clz.__annotations__.get(f)
-            else:
-                t = None
-            if f in data:
-                field_values[f] = deserialize(data.get(f), t, error=error)
-        return clz(**field_values)
-
-    # DataClass
-    if dataclasses.is_dataclass(clz):
-        init_field_values = {}
-        non_init_field_values = {}
-        for f in dataclasses.fields(clz):
-            if f.name in data:
-                field_values = init_field_values if f.init else non_init_field_values
-                field_values[f.name] = deserialize(
-                    data.get(f.name), f.type, error=error
-                )
-        obj = clz(**init_field_values)
-        for f_name, f_value in non_init_field_values.items():
-            # use object.__setattr__ in case clz is frozen
-            object.__setattr__(obj, f_name, f_value)
-        return obj
-
-    # Primitive types
-    if clz_origin == type(data):
-        return data
-    if clz_origin == float and type(data) == int:
-        return data
-
-    if error == "raise":
-        raise DeserializationError(
-            data,
-            clz,
-            f"Cannot match requested type ({clz} / {clz_origin}) with data's type ({type(data)})",
-        )
-    else:
-        return data
 
 
 def dump(

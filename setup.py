@@ -31,5 +31,8 @@ setuptools.setup(
         "typing_inspect>=0.4.0",
         "unidiff>=0.5.5",
     ],
-    extras_require={"dev": ["pytest", "flake8", "black", "pytest-cov"]},
+    extras_require={
+        "dev": ["pytest", "flake8", "black", "pytest-cov"],
+        "io-3rd-party": ["numpy", "pandas", "torch"],
+    },
 )

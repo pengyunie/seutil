@@ -18,8 +18,9 @@ function get_conda_path() {
 
 
 function prepare_conda_env() {
-        ### Preparing the base environment "nlpast"
+        # the conda env name
         local env_name=${1:-seutil}; shift
+        # path to conda.sh script; automatically inferred from conda executable path if not provided
         local conda_path=${1:-$(get_conda_path)}; shift
 
         echo ">>> Preparing conda environment \"${env_name}\", for conda at ${conda_path}"
@@ -33,7 +34,7 @@ function prepare_conda_env() {
         conda activate $env_name
 
         # Install libraries
-        pip install -e .[dev]
+        pip install -e .[dev,io-3rd-party]
 }
 
 
