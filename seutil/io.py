@@ -664,6 +664,19 @@ except ImportError:
     pass
 
 
+try:
+    import torch
+
+    # tensor
+    register_type(
+        torch.Tensor,
+        serializer=lambda x: serialize(x.tolist()),
+        deserializer=torch.tensor,
+    )
+except ImportError:
+    pass
+
+
 # ==========
 # file read and write
 # ==========

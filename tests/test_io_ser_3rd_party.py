@@ -1,3 +1,4 @@
+import math
 import pytest
 
 from .test_io_ser import check_serialization_ok
@@ -132,4 +133,44 @@ class Test_io_ser_pandas:
             obj=self.pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]}),
             data=[{"a": 1, "b": 4}, {"a": 2, "b": 5}, {"a": 3, "b": 6}],
             obj_eq=self.pd.DataFrame.equals,
+        )
+
+
+class Test_io_ser_pytorch:
+
+    torch = pytest.importorskip("torch")
+
+    def test_ser_tensor_scaler_long(self):
+        check_serialization_ok(
+            obj=self.torch.tensor(1),
+            data=1,
+            obj_eq=self.torch.equal,
+        )
+
+    def test_ser_tensor_scaler_float(self):
+        check_serialization_ok(
+            obj=self.torch.tensor(4.2),
+            data=4.2,
+            obj_eq=self.torch.equal,
+            data_eq=lambda a, b: math.isclose(a, b, rel_tol=1e-7),
+        )
+
+    @pytest.mark.xfail(
+        reason="types of tensors are not serialized, thus after deserialization tensor will have the default types (long or float)"
+    )
+    def test_ser_tensor_not_serializing_type_long(self):
+        check_serialization_ok(
+            obj=self.torch.tensor(1, dtype=self.torch.int),
+            data=1,
+            obj_eq=self.torch.equal,
+        )
+
+    @pytest.mark.xfail(
+        reason="types of tensors are not serialized, thus after deserialization tensor will have the default types (long or float)"
+    )
+    def test_ser_tensor_not_serializing_type_float(self):
+        check_serialization_ok(
+            obj=self.torch.tensor(4.2, dtype=self.torch.double),
+            data=4.2,
+            obj_eq=self.torch.equal,
         )
