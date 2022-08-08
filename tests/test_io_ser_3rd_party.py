@@ -114,3 +114,22 @@ class Test_io_ser_numpy:
             obj=obj,
             data=obj.item(),
         )
+
+
+class Test_io_ser_pandas:
+
+    pd = pytest.importorskip("pandas")
+
+    def test_ser_series(self):
+        check_serialization_ok(
+            obj=self.pd.Series([1, 2, 3]),
+            data={0: 1, 1: 2, 2: 3},
+            obj_eq=self.pd.Series.equals,
+        )
+
+    def test_ser_dataframe(self):
+        check_serialization_ok(
+            obj=self.pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]}),
+            data=[{"a": 1, "b": 4}, {"a": 2, "b": 5}, {"a": 3, "b": 6}],
+            obj_eq=self.pd.DataFrame.equals,
+        )

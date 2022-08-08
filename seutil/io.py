@@ -642,8 +642,24 @@ try:
     # other scalars
     register_type(np.bool_, serializer=np.bool_.item, deserializer=np.bool_)
     # TODO: np.datetime64, np.timedelta64, np.object_, np.bytes_, np.str_, np.void, etc.
+except ImportError:
+    pass
 
 
+try:
+    import pandas as pd
+
+    # series
+    register_type(
+        pd.Series, serializer=lambda x: serialize(x.to_dict()), deserializer=pd.Series
+    )
+
+    # dataframe
+    register_type(
+        pd.DataFrame,
+        serializer=lambda x: serialize(x.to_dict(orient="records")),
+        deserializer=pd.DataFrame.from_records,
+    )
 except ImportError:
     pass
 
