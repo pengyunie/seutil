@@ -91,7 +91,11 @@ class Project:
         return cls(full_name=f"{match.group('repo')}_{match.group('name')}", url=url)
 
     def clone(
-        self, downloads_dir: Path, name: Optional[str] = None, exists: str = "ignore"
+        self,
+        downloads_dir: Path,
+        name: Optional[str] = None,
+        exists: str = "ignore",
+        timeout: int = 300,
     ) -> None:
         """
         Clones the project to a local directory, such that more operations can be performed on it.
@@ -134,7 +138,7 @@ class Project:
 
         io.mkdir(downloads_dir)
         with io.cd(downloads_dir):
-            bash.run(f"git clone {self.url} {name}", 0)
+            bash.run(f"git clone {self.url} {name}", 0, timeout=timeout)
         self._dir = downloads_dir / name
 
     def set_cloned_dir(self, dir: Path) -> None:
