@@ -28,6 +28,7 @@ from typing import (
 import recordclass
 import typing_inspect
 import yaml
+import csv
 
 __all__ = [
     "cd",
@@ -757,6 +758,13 @@ class Fmt(FmtProperty, Enum):
         writer=lambda f, obj: yaml.dump(obj, f),
         reader=lambda f: yaml.load(f, Loader=yaml.FullLoader),
         exts=["yml", "yaml"],
+        serialize=True,
+    )
+    # === csv list ===
+    csvList = FmtProperty(
+        writer=lambda f, obj: csv.writer(f).writerows(obj),
+        reader=lambda f: "".join([",".join(row) for row in csv.reader(f)]),
+        exts=["csv"],
         serialize=True,
     )
 

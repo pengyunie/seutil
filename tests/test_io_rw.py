@@ -84,6 +84,8 @@ PICKLE_INPUTS: List[Any] = [
     12 + 34j,
 ]
 
+CSV_INPUTS: List[Any] = ["name,age", "a,1", "b,2", "c,3"]
+
 FMTS_INPUTS: List[Tuple[str, Optional[su.io.Fmt], List[Any]]] = [
     ("a.txt", None, TXT_INPUTS),
     ("a.txt", su.io.Fmt.txt, TXT_INPUTS),
@@ -95,6 +97,7 @@ FMTS_INPUTS: List[Tuple[str, Optional[su.io.Fmt], List[Any]]] = [
     ("a.yml", su.io.Fmt.yaml, TXT_INPUTS + JSON_INPUTS + YAML_INPUTS),
     ("a.pkl", None, TXT_INPUTS + JSON_INPUTS + YAML_INPUTS + PICKLE_INPUTS),
     ("a.pkl", su.io.Fmt.pickle, TXT_INPUTS + JSON_INPUTS + YAML_INPUTS + PICKLE_INPUTS),
+    ("a.csv", su.io.Fmt.csvList, CSV_INPUTS),
 ]
 
 
