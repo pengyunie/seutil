@@ -1,19 +1,23 @@
-from pathlib import Path
 import re
-from typing import *
-from .. import LoggingUtils, IOUtils
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
+
+from .. import io, log
+
+logger = log.get_logger("latex.Macro")
 
 
 class Macro:
 
-    logger = LoggingUtils.get_logger("latex.Macro")
-
     T = TypeVar("T")
-    def __init__(self,
-                 key: str,
-                 value: Optional[T] = None,
-                 value_func: Optional[Callable[[Dict[str, "Macro"]], T]] = None,
-                 tostring_func: Optional[Callable[[T], str]] = None):
+
+    def __init__(
+        self,
+        key: str,
+        value: Optional[T] = None,
+        value_func: Optional[Callable[[Dict[str, "Macro"]], T]] = None,
+        tostring_func: Optional[Callable[[T], str]] = None,
+    ):
         """
         Defines a latex macro, using "\DefMacro{key}{value}".
         :param key: the key of the macro.
@@ -38,24 +42,23 @@ class Macro:
         """
         if self.value is None and self.value_func is None:
             raise ValueError("Cannot evaluate a macro without any value definition")
-        # end if
 
         if self.value_func is not None:
             self.value = self.value_func(macros_indexed)
-        # end if
-        self.logger.info(f"Macro {self.key} evaluates to {self.value}")
+        logger.info(f"Macro {self.key} evaluates to {self.value}")
 
         tostring_func = self.tostring_func if self.tostring_func is not None else str
         return f"\\DefMacro{{{self.key}}}{{{tostring_func(self.value)}}}"
 
     # Deprecated
     @classmethod
-    def define(cls, key: str, value_fmt: Union[str, Any], *values, **values_items) -> "Macro":
+    def define(
+        cls, key: str, value_fmt: Union[str, Any], *values, **values_items
+    ) -> "Macro":
         if len(values) != 0 or len(values_items) != 0:
             return Macro(key, value=value_fmt.format(*values, **values_items))
         else:
             return Macro(key, value=value_fmt)
-        # end if
 
     def use(self) -> str:
         latex_line = f"\\UseMacro{{{self.key}}}"
@@ -68,13 +71,14 @@ class Macro:
         """
         Loads the macros from a latex file.
         Will convert the value of the macros to int or float, if possible.
+        TODO: does not work if the macro spans multiple lines.
 
         :param file: the latex file.
         :return: the indexed dictionary of {macro.key, macro}.
         """
         macros_indexed: Dict[str, Macro] = dict()
 
-        lines: List[str] = IOUtils.load(file, "txt").split("\n")
+        lines: List[str] = io.load(file, io.Fmt.txtList)
         for line in lines:
             match = cls.RE_DEF_MACRO.fullmatch(line.strip())
             if match is not None:
@@ -89,10 +93,7 @@ class Macro:
                         value = float(value)
                     except:
                         pass
-                # end try, try
 
                 macros_indexed[key] = Macro(key, value)
-            # end if
-        # end for
 
         return macros_indexed
