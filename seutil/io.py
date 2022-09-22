@@ -1,4 +1,5 @@
 import collections
+import csv
 import dataclasses
 import inspect
 import io
@@ -17,7 +18,6 @@ from typing import (
     Dict,
     Iterator,
     List,
-    NamedTuple,
     Optional,
     Type,
     TypeVar,
@@ -28,7 +28,6 @@ from typing import (
 import recordclass
 import typing_inspect
 import yaml
-import csv
 
 __all__ = [
     "cd",
@@ -37,6 +36,7 @@ __all__ = [
     "mkdir",
     "mktmp",
     "mktmp_dir",
+    "fmts",
     "Fmt",
     "serialize",
     "deserialize",
@@ -308,13 +308,13 @@ def unregister_type(
 
 def serialize(
     obj: TObj,
-    fmt: Optional["Fmt"] = None,
+    fmt: Optional["Formatter"] = None,
 ) -> TData:
     """
     Serializes an object into a data structure with only primitive types, list, dict.
     If fmt is provided, its formatting constraints are taken into account. Supported fmts:
     * json, jsonPretty, jsonNoSort, jsonList: dict only have str keys.
-    TODO: move this considering of formatting constraints to a spearate function, and let it automatically happen during dump; probably also add a reverse function which happens during load.
+    TODO: move this considering of formatting constraints to a separate function, and let it automatically happen during dump; probably also add a reverse function which happens during load.
 
     :param obj: the object to be serialized.
     :param fmt: (optional) the target format.
@@ -347,7 +347,7 @@ def serialize(
         ret = {serialize(k, fmt): serialize(v, fmt) for k, v in obj.items()}
 
         # Json-like formats constraint: dict key must be str
-        if fmt in [Fmt.json, Fmt.jsonPretty, Fmt.jsonNoSort, Fmt.jsonList]:
+        if fmt in [fmts.json, fmts.jsonPretty, fmts.jsonNoSort, fmts.jsonList]:
             ret = {str(k): v for k, v in ret.items()}
         return ret
     elif isinstance(obj, Enum):
@@ -683,7 +683,8 @@ except ImportError:
 # ==========
 
 
-class FmtProperty(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class Formatter:
     # The function used by dump
     # * line_mode=False:  takes a file-object and obj as input, writes the obj to the file-object
     # * line_mode=True:  takes an item in the obj as input (from for loop), returns one line of text *without* "\n"
@@ -695,85 +696,105 @@ class FmtProperty(NamedTuple):
     reader: Union[Callable[[io.IOBase], Any], Callable[[str], Any]]
 
     # File extensions, used for format inference; the first extension is used for output
-    exts: List[str] = None
+    exts: Optional[List[str]] = None
 
     # If the file should be opened in binary mode
     binary: bool = False
 
-    # If the file should be read/writen one line at a time
+    # If the file should be read/written one line at a time
     line_mode: bool = False
 
     # If this format requires (de)serialization
     serialize: bool = False
 
 
-class Fmt(FmtProperty, Enum):
+class fmts:
     # === txt ===
-    txt = FmtProperty(
+    txt = Formatter(
         writer=lambda f, obj: f.write(str(obj)),
         reader=lambda f: f.read(),
         exts=["txt"],
     )
+
     # === pickle ===
-    pickle = FmtProperty(
+    pickle = Formatter(
         writer=lambda f, obj: pkl.dump(obj, f),
         reader=lambda f: pkl.load(f),
         exts=["pkl", "pickle"],
         binary=True,
     )
+
     # === json ===
-    json = FmtProperty(
+    json = Formatter(
         writer=lambda f, obj: json.dump(obj, f, sort_keys=True),
         reader=lambda f: json.load(f),
         exts=["json"],
         serialize=True,
     )
     # Use yaml loader to allow formatting errors (e.g., trailing commas), but cannot handle unprintable chars
-    jsonFlexible = json._replace(reader=lambda f: yaml.load(f, Loader=yaml.FullLoader))
+    jsonFlexible = dataclasses.replace(
+        json, reader=lambda f: yaml.load(f, Loader=yaml.FullLoader)
+    )
+    json_flexible = jsonFlexible
     # Pretty-print version with sorting keys
-    jsonPretty = json._replace(
-        writer=lambda f, obj: json.dump(obj, f, sort_keys=True, indent=4),
+    jsonPretty = dataclasses.replace(
+        json, writer=lambda f, obj: json.dump(obj, f, sort_keys=True, indent=4)
     )
+    json_pretty = jsonPretty
     # Pretty-print version without sorting keys
-    jsonNoSort = json._replace(
-        writer=lambda f, obj: json.dump(obj, f, indent=4),
+    jsonNoSort = dataclasses.replace(
+        json, writer=lambda f, obj: json.dump(obj, f, indent=4)
     )
+    json_no_sort = jsonNoSort
+
     # === jsonl (json list) ===
-    jsonList = FmtProperty(
+    jsonList = Formatter(
         writer=lambda item: json.dumps(item),
         reader=lambda line: json.loads(line),
         exts=["jsonl"],
         line_mode=True,
         serialize=True,
     )
+    json_list = jsonList
+
     # === text list ===
-    txtList = FmtProperty(
+    txtList = Formatter(
         writer=lambda item: str(item),
         reader=lambda line: line.replace("\n", ""),
         exts=["txt"],
         line_mode=True,
     )
+    txt_list = txtList
+
     # === yaml ===
-    yaml = FmtProperty(
+    yaml = Formatter(
         writer=lambda f, obj: yaml.dump(obj, f),
         reader=lambda f: yaml.load(f, Loader=yaml.FullLoader),
         exts=["yml", "yaml"],
         serialize=True,
     )
+
     # === csv list ===
-    csvList = FmtProperty(
+    csvList = Formatter(
         writer=lambda f, obj: csv.writer(f).writerows(obj),
         reader=lambda f: "".join([",".join(row) for row in csv.reader(f)]),
         exts=["csv"],
         serialize=True,
     )
+    csv_list = csvList
+
+    all_fmts = [v for v in locals().values() if isinstance(v, Formatter)]
 
 
-def infer_fmt_from_ext(ext: str, default: Optional[Fmt] = None) -> Fmt:
+# backward compatibility
+Fmt = fmts
+
+
+def infer_fmt_from_ext(ext: str, default: Optional[Formatter] = None) -> Formatter:
     if ext.startswith("."):
         ext = ext[1:]
 
-    for fmt in Fmt:
+    for fmt in fmts.all_fmts:
         if fmt.exts is not None and ext in fmt.exts:
             return fmt
 
@@ -786,7 +807,7 @@ def infer_fmt_from_ext(ext: str, default: Optional[Fmt] = None) -> Fmt:
 def dump(
     path: Union[str, Path],
     obj: object,
-    fmt: Optional[Fmt] = None,
+    fmt: Optional[Formatter] = None,
     serialization: Optional[bool] = None,
     parents: bool = True,
     append: bool = False,
@@ -866,7 +887,7 @@ def dump(
 
 def load(
     path: Union[str, Path],
-    fmt: Optional[Fmt] = None,
+    fmt: Optional[Formatter] = None,
     serialization: Optional[bool] = None,
     clz: Optional[Type] = None,
     error: str = "ignore",
@@ -875,7 +896,7 @@ def load(
     """
     Loads an object from a file.
     The format is automatically inferred from the file name, if not otherwise specified.
-    By default, if clz is given, deserialization (i.e., unpackingn from primitive types
+    By default, if clz is given, deserialization (i.e., unpacking from primitive types
     and data structures) is automatically performed for the formats that needs it (e.g., json).
 
     :param path: the path to load the object.
@@ -928,7 +949,7 @@ class LoadIterator(Iterator):
         self,
         path: Path,
         file_mode: str,
-        fmt: FmtProperty,
+        fmt: Formatter,
         serialization: bool,
         clz: Optional[Type],
         error: str = "ignore",
