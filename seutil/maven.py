@@ -67,7 +67,7 @@ class MavenModule:
                 f"mvn -q exec:exec -Dexec.executable=echo -Dexec.args='%classpath' > {tmp_file}",
                 0,
             )
-            classpath = su.io.load(tmp_file, fmt=su.io.Fmt.txt)
+            classpath = su.io.load(tmp_file, fmt=su.io.Fmt.txt).strip()
             su.io.rm(tmp_file)
             return classpath
 
@@ -126,6 +126,10 @@ class MavenModule:
                     su.bash.run(f"mvn package -DskipTests {SKIPS}", 0, timeout=timeout)
                 else:
                     raise RuntimeError(f"Failed to compile")
+
+    @property
+    def dir(self) -> Path:
+        return self.project.dir / self.rel_path
 
 
 @dataclasses.dataclass
