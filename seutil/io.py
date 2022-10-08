@@ -1,9 +1,12 @@
+import bz2
 import collections
 import csv
 import dataclasses
+import gzip
 import inspect
 import io
 import json
+import lzma
 import os
 import pickle as pkl
 import pydoc
@@ -790,6 +793,34 @@ class fmts:
 Fmt = fmts
 
 
+@dataclasses.dataclass(frozen=True)
+class Compressor:
+    # The file object wrapper used by dump&load
+    wrapper: Callable[[io.IOBase], io.IOBase]
+
+    # File extensions, used for format inference; the first extension is used for output
+    exts: Optional[List[str]] = None
+
+
+class compressors:
+    # === gzip ===
+    gzip = Compressor(
+        wrapper=lambda f: gzip.GzipFile(fileobj=f, mode=f.mode), exts=["gz"]
+    )
+
+    # === bz2 ===
+    bz2 = Compressor(
+        wrapper=lambda f: bz2.BZ2File(filename=f, mode=f.mode), exts=["bz2"]
+    )
+
+    # === lzma ===
+    lzma = Compressor(
+        wrapper=lambda f: lzma.LZMAFile(filename=f, mode=f.mode), exts=["xz"]
+    )
+
+    all_compressors = [v for v in locals().values() if isinstance(v, Compressor)]
+
+
 def infer_fmt_from_ext(ext: str, default: Optional[Formatter] = None) -> Formatter:
     if ext.startswith("."):
         ext = ext[1:]
@@ -808,6 +839,7 @@ def dump(
     path: Union[str, Path],
     obj: object,
     fmt: Optional[Formatter] = None,
+    # TODO: compressor
     serialization: Optional[bool] = None,
     parents: bool = True,
     append: bool = False,
@@ -841,8 +873,12 @@ def dump(
     path = _unify_path(path)
 
     # Check path existence
-    if path.exists() and not exists_ok:
-        raise FileExistsError(str(path))
+    if path.exists():
+        if exists_ok and not append:
+            # make sure the existing file is removed in non-append mode
+            rm(path)
+        else:
+            raise FileExistsError(str(path))
 
     # Create parent directories
     if not path.parent.is_dir():
