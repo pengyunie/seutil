@@ -19,7 +19,7 @@ def test_dump_load_auto_infer(tmp_path: Path, name: str):
 @pytest.mark.parametrize(
     "fmt", [fmt for fmt in su.io.fmts.all_fmts if not fmt.line_mode]
 )
-@pytest.mark.parametrize("compressor", su.io.compressors.all_compressors)
+@pytest.mark.parametrize("compressor", su.io.compressors.all_compressors + [None])
 def test_dump_load(tmp_path: Path, fmt: su.io.Formatter, compressor: su.io.Compressor):
     su.io.dump(tmp_path / "a", SAMPLE_DATA, fmt=fmt, compressor=compressor)
     assert su.io.load(tmp_path / "a", fmt=fmt, compressor=compressor) == SAMPLE_DATA
@@ -32,7 +32,7 @@ def test_dump_load_list_auto_infer(tmp_path: Path, name: str):
 
 
 @pytest.mark.parametrize("fmt", [fmt for fmt in su.io.fmts.all_fmts if fmt.line_mode])
-@pytest.mark.parametrize("compressor", su.io.compressors.all_compressors)
+@pytest.mark.parametrize("compressor", su.io.compressors.all_compressors + [None])
 def test_dump_load_list(
     tmp_path: Path, fmt: su.io.Formatter, compressor: su.io.Compressor
 ):
