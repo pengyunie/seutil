@@ -15,18 +15,8 @@ import tempfile
 import warnings
 from enum import Enum
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterator,
-    List,
-    Optional,
-    Type,
-    TypeVar,
-    Union,
-    get_type_hints,
-)
+from typing import (Any, Callable, Dict, Iterator, List, Optional, Tuple, Type,
+                    TypeVar, Union, get_type_hints)
 
 import recordclass
 import typing_inspect
@@ -779,6 +769,7 @@ class fmts:
 
     # === csv list ===
     csvList = Formatter(
+        # TODO: add a checker to ensure the input is list of list
         writer=lambda f, obj: csv.writer(f).writerows(obj),
         reader=lambda f: "".join([",".join(row) for row in csv.reader(f)]),
         exts=["csv"],
@@ -795,8 +786,8 @@ Fmt = fmts
 
 @dataclasses.dataclass(frozen=True)
 class Compressor:
-    # The file object wrapper used by dump&load
-    wrapper: Callable[[io.IOBase], io.IOBase]
+    # open function alternative to os.open
+    open_fn: Callable
 
     # File extensions, used for format inference; the first extension is used for output
     exts: Optional[List[str]] = None
@@ -804,42 +795,52 @@ class Compressor:
 
 class compressors:
     # === gzip ===
-    gzip = Compressor(
-        wrapper=lambda f: gzip.GzipFile(fileobj=f, mode=f.mode), exts=["gz"]
-    )
+    gzip = Compressor(open_fn=gzip.open)
 
     # === bz2 ===
-    bz2 = Compressor(
-        wrapper=lambda f: bz2.BZ2File(filename=f, mode=f.mode), exts=["bz2"]
-    )
+    bz2 = Compressor(open_fn=bz2.open)
 
     # === lzma ===
-    lzma = Compressor(
-        wrapper=lambda f: lzma.LZMAFile(filename=f, mode=f.mode), exts=["xz"]
-    )
+    lzma = Compressor(open_fn=lzma.open)
 
     all_compressors = [v for v in locals().values() if isinstance(v, Compressor)]
 
 
-def infer_fmt_from_ext(ext: str, default: Optional[Formatter] = None) -> Formatter:
-    if ext.startswith("."):
-        ext = ext[1:]
+def _infer_from_path(path: Path) -> Tuple[Formatter, Compressor]:
+    name = path.name
+    fmt = None
+    compressor = None
 
-    for fmt in fmts.all_fmts:
-        if fmt.exts is not None and ext in fmt.exts:
-            return fmt
+    if "." not in name:
+        return fmt, compressor
+    name, ext = name.rsplit(".", 1)
 
-    if default is not None:
-        return default
-    else:
-        raise RuntimeError(f'Cannot infer format for extension "{ext}"')
+    # detect possible compressor extension
+    for x in compressors.all_compressors:
+        if x.exts is not None and ext in x.exts:
+            compressor = x
+
+            # take the next extension
+            if "." not in name:
+                return fmt, compressor
+            name, ext = name.rsplit(".", 1)
+
+            break
+
+    # detect possible format extension
+    for x in fmts.all_fmts:
+        if x.exts is not None and ext in x.exts:
+            fmt = x
+            break
+
+    return fmt, compressor
 
 
 def dump(
     path: Union[str, Path],
     obj: object,
     fmt: Optional[Formatter] = None,
-    # TODO: compressor
+    compressor: Optional[Compressor] = None,
     serialization: Optional[bool] = None,
     parents: bool = True,
     append: bool = False,
@@ -855,6 +856,7 @@ def dump(
     :param path: the path to save the file.
     :param obj: the object to be saved.
     :param fmt: the format of the file; if None (default), inferred from path.
+    :param compressor: the compression format of the file; if None (default), inferred from path.
     :param serialization: whether or not to serialize the object before saving:
         * True: always serialize;
         * None (default): only serialize for the formats that needs it;
@@ -888,13 +890,18 @@ def dump(
             raise FileNotFoundError(str(path.parent))
 
     # Infer format
+    if fmt is None or compressor is None:
+        inferred_fmt, inferred_compressor = _infer_from_path(path)
+        if fmt is None:
+            fmt = inferred_fmt
+        if compressor is None:
+            compressor = inferred_compressor
+
     if fmt is None:
-        fmt = infer_fmt_from_ext(path.suffix)
+        raise RuntimeError(f"Cannot infer format for file {path}")
 
     if append and not fmt.line_mode:
-        raise RuntimeWarning(
-            f"Appending to a format that's not list-like ({fmt}) may result in invalid file"
-        )
+        raise RuntimeWarning(f"Cannot append to a non-list-like format ({fmt})")
 
     # Serialize (when appropriate)
     if serialization is None:
@@ -910,8 +917,12 @@ def dump(
     file_mode = "w" if not append else "a"
     if fmt.binary:
         file_mode += "b"
+    elif compressor is not None:
+        file_mode += "t"
 
-    with open(path, file_mode) as f:
+    open_fn = open if compressor is None else compressor.open_fn
+
+    with open_fn(path, file_mode) as f:
         # Write content
         if not fmt.line_mode:
             fmt.writer(f, obj)
@@ -924,6 +935,7 @@ def dump(
 def load(
     path: Union[str, Path],
     fmt: Optional[Formatter] = None,
+    compressor: Optional[Compressor] = None,
     serialization: Optional[bool] = None,
     clz: Optional[Type] = None,
     error: str = "ignore",
@@ -937,6 +949,7 @@ def load(
 
     :param path: the path to load the object.
     :param fmt: the format of the file; if None (default), inferred from path.
+    :param compressor: the compression format of the file; if None (default), inferred from path.
     :param serialization: whether or not to deserialize the object after loading:
         * True: always serialize;
         * None (default): only serialize for the formats that needs it;
@@ -950,12 +963,19 @@ def load(
     path = _unify_path(path)
 
     # Infer format
+    if fmt is None or compressor is None:
+        inferred_fmt, inferred_compressor = _infer_from_path(path)
+        if fmt is None:
+            fmt = inferred_fmt
+        if compressor is None:
+            compressor = inferred_compressor
+
     if fmt is None:
-        fmt = infer_fmt_from_ext(path.suffix)
+        raise RuntimeError(f"Cannot infer format for file {path}")
 
     # Check arguments
     if iter_line and not fmt.line_mode:
-        raise RuntimeError(f"Cannot load format {fmt} file under line mode")
+        raise RuntimeWarning(f"Cannot iteratively load a non-list-like format ({fmt})")
 
     if serialization is None:
         serialization = fmt.serialize
@@ -964,16 +984,22 @@ def load(
     file_mode = "r"
     if fmt.binary:
         file_mode += "b"
+    elif compressor is not None:
+        file_mode += "t"
+
+    open_fn = open if compressor is None else compressor.open_fn
 
     # Load content
     if not fmt.line_mode:
-        with open(path, file_mode) as f:
+        with open_fn(path, file_mode) as f:
             obj = fmt.reader(f)
             if serialization:
                 obj = deserialize(obj, clz, error=error)
             return obj
     else:
-        iterator = LoadIterator(path, file_mode, fmt, serialization, clz, error)
+        iterator = LoadIterator(
+            path, file_mode, open_fn, fmt, serialization, clz, error
+        )
         if iter_line:
             return iterator
         else:
@@ -985,12 +1011,13 @@ class LoadIterator(Iterator):
         self,
         path: Path,
         file_mode: str,
+        open_fn: Callable,
         fmt: Formatter,
         serialization: bool,
         clz: Optional[Type],
         error: str = "ignore",
     ):
-        self.fd = open(path, file_mode)
+        self.fd = open_fn(path, file_mode)
         self.fmt = fmt
         self.serialization = serialization
         self.clz = clz
