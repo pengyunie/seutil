@@ -99,7 +99,11 @@ class MavenModule:
             su.io.load(self.project.dir / self.rel_path / "pom.xml", fmt=su.io.Fmt.txt)
         )
 
-        plugins = pom.get("build", {}).get("plugins", {}).get("plugin", [])
+        plugins = pom..get("project", {}).get("build", {}).get("plugins", {}).get("plugin", [])
+        if not isinstance(plugins, list):
+            plugins = [plugins]
+            pom.get("build", {}).get("plugins", {})["plugin"] = plugins
+            
         to_remove = None
         for i, plugin in enumerate(plugins):
             if plugin.get("artifactId") == artifact_id:
