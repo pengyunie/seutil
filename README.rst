@@ -35,6 +35,6 @@ Full documentation can be found at `readthedocs`_.
 .. _PyPI: https://pypi.org/project/seutil/
 .. |GitHubRelease| image:: https://img.shields.io/github/v/release/pengyunie/seutil?include_prereleases
 .. _GitHubRelease: https://github.com/pengyunie/seutil/releases
-.. |GitHubWorkflow| image:: https://img.shields.io/github/workflow/status/pengyunie/seutil/Python%20package
+.. |GitHubWorkflow| image:: https://img.shields.io/github/actions/workflow/status/pengyunie/seutil/python-package.yml?branch=master
 .. _GitHubWorkflow: https://github.com/pengyunie/seutil/actions/workflows/python-package.yml
 .. _readthedocs: https://seutil.readthedocs.io/en/latest/
