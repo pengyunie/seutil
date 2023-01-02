@@ -5,7 +5,7 @@ with open("README.rst", "r") as fh:
 
 setuptools.setup(
     name="seutil",
-    version="0.8.2",
+    version="0.8.6",
     author="Pengyu Nie",
     author_email="prodigy.sov@gmail.com",
     description="Python utilities for SE research",
@@ -21,7 +21,7 @@ setuptools.setup(
     install_requires=[
         "ijson~=3.1.4",
         "igraph>=0.9.10",
-        "jsonargparse[all]>=4.1.4",
+        "jsonargparse[signatures]>=4.1.4",
         "lazy-import>=0.2.2",
         "numpy>=1.14.4",
         "PyGitHub>=1.40",
@@ -30,6 +30,7 @@ setuptools.setup(
         "tqdm>=4.62.3",
         "typing_inspect>=0.4.0",
         "unidiff>=0.5.5",
+        "xmltodict>=0.2.2",
     ],
     extras_require={
         "dev": ["pytest", "flake8", "black", "pytest-cov"],

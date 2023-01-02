@@ -21,17 +21,25 @@ class BashError(RuntimeError):
 
     def __str__(self) -> str:
         s = f"Command '{self.cmd}' failed with returncode {self.returncode}, expected returncode {self.check_returncode}.\n"
-        show_full_output = os.environ.get("SEUTIL_SHOW_FULL_OUTPUT", "0") == "1"
+        show_full_output = os.environ.get("SEUTIL_SHOW_FULL_OUTPUT", "1") not in {
+            "0",
+            "false",
+            "False",
+        }
         if show_full_output:
             s += f"STDOUT:\n{self.stdout}\n"
             s += f"STDERR:\n{self.stderr}\n"
         else:
-            if len(self.stdout) > 200:
-                s += f"STDOUT (truncated, set SEUTIL_SHOW_FULL_OUTPUT=1 to see full output):\n{self.stdout[:100]}...{self.stdout[-100:]}\n"
+            if len(self.stdout) > 800:
+                s += (
+                    f"STDOUT (truncated):\n{self.stdout[:400]}...{self.stdout[-400:]}\n"
+                )
             else:
                 s += f"STDOUT:\n{self.stdout}\n"
-            if len(self.stderr) > 200:
-                s += f"STDERR (truncated, set SEUTIL_SHOW_FULL_OUTPUT=1 to see full output):\n{self.stderr[:100]}...{self.stderr[-100:]}\n"
+            if len(self.stderr) > 800:
+                s += (
+                    f"STDERR (truncated):\n{self.stderr[:400]}...{self.stderr[-400:]}\n"
+                )
             else:
                 s += f"STDERR:\n{self.stderr}\n"
         return s

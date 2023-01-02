@@ -1,8 +1,12 @@
+import bz2
 import collections
+import csv
 import dataclasses
+import gzip
 import inspect
 import io
 import json
+import lzma
 import os
 import pickle as pkl
 import pydoc
@@ -11,19 +15,8 @@ import tempfile
 import warnings
 from enum import Enum
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterator,
-    List,
-    NamedTuple,
-    Optional,
-    Type,
-    TypeVar,
-    Union,
-    get_type_hints,
-)
+from typing import (Any, Callable, Dict, Iterator, List, Optional, Tuple, Type,
+                    TypeVar, Union, get_type_hints)
 
 import recordclass
 import typing_inspect
@@ -36,6 +29,7 @@ __all__ = [
     "mkdir",
     "mktmp",
     "mktmp_dir",
+    "fmts",
     "Fmt",
     "serialize",
     "deserialize",
@@ -307,13 +301,13 @@ def unregister_type(
 
 def serialize(
     obj: TObj,
-    fmt: Optional["Fmt"] = None,
+    fmt: Optional["Formatter"] = None,
 ) -> TData:
     """
     Serializes an object into a data structure with only primitive types, list, dict.
     If fmt is provided, its formatting constraints are taken into account. Supported fmts:
     * json, jsonPretty, jsonNoSort, jsonList: dict only have str keys.
-    TODO: move this considering of formatting constraints to a spearate function, and let it automatically happen during dump; probably also add a reverse function which happens during load.
+    TODO: move this considering of formatting constraints to a separate function, and let it automatically happen during dump; probably also add a reverse function which happens during load.
 
     :param obj: the object to be serialized.
     :param fmt: (optional) the target format.
@@ -346,7 +340,7 @@ def serialize(
         ret = {serialize(k, fmt): serialize(v, fmt) for k, v in obj.items()}
 
         # Json-like formats constraint: dict key must be str
-        if fmt in [Fmt.json, Fmt.jsonPretty, Fmt.jsonNoSort, Fmt.jsonList]:
+        if fmt in [fmts.json, fmts.jsonPretty, fmts.jsonNoSort, fmts.jsonList]:
             ret = {str(k): v for k, v in ret.items()}
         return ret
     elif isinstance(obj, Enum):
@@ -682,7 +676,8 @@ except ImportError:
 # ==========
 
 
-class FmtProperty(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class Formatter:
     # The function used by dump
     # * line_mode=False:  takes a file-object and obj as input, writes the obj to the file-object
     # * line_mode=True:  takes an item in the obj as input (from for loop), returns one line of text *without* "\n"
@@ -694,91 +689,158 @@ class FmtProperty(NamedTuple):
     reader: Union[Callable[[io.IOBase], Any], Callable[[str], Any]]
 
     # File extensions, used for format inference; the first extension is used for output
-    exts: List[str] = None
+    exts: Optional[List[str]] = None
 
     # If the file should be opened in binary mode
     binary: bool = False
 
-    # If the file should be read/writen one line at a time
+    # If the file should be read/written one line at a time
     line_mode: bool = False
 
     # If this format requires (de)serialization
     serialize: bool = False
 
 
-class Fmt(FmtProperty, Enum):
+class fmts:
     # === txt ===
-    txt = FmtProperty(
+    txt = Formatter(
         writer=lambda f, obj: f.write(str(obj)),
         reader=lambda f: f.read(),
         exts=["txt"],
     )
+
     # === pickle ===
-    pickle = FmtProperty(
+    pickle = Formatter(
         writer=lambda f, obj: pkl.dump(obj, f),
         reader=lambda f: pkl.load(f),
         exts=["pkl", "pickle"],
         binary=True,
     )
+
     # === json ===
-    json = FmtProperty(
+    json = Formatter(
         writer=lambda f, obj: json.dump(obj, f, sort_keys=True),
         reader=lambda f: json.load(f),
         exts=["json"],
         serialize=True,
     )
     # Use yaml loader to allow formatting errors (e.g., trailing commas), but cannot handle unprintable chars
-    jsonFlexible = json._replace(reader=lambda f: yaml.load(f, Loader=yaml.FullLoader))
+    jsonFlexible = dataclasses.replace(
+        json, reader=lambda f: yaml.load(f, Loader=yaml.FullLoader)
+    )
+    json_flexible = jsonFlexible
     # Pretty-print version with sorting keys
-    jsonPretty = json._replace(
-        writer=lambda f, obj: json.dump(obj, f, sort_keys=True, indent=4),
+    jsonPretty = dataclasses.replace(
+        json, writer=lambda f, obj: json.dump(obj, f, sort_keys=True, indent=4)
     )
+    json_pretty = jsonPretty
     # Pretty-print version without sorting keys
-    jsonNoSort = json._replace(
-        writer=lambda f, obj: json.dump(obj, f, indent=4),
+    jsonNoSort = dataclasses.replace(
+        json, writer=lambda f, obj: json.dump(obj, f, indent=4)
     )
+    json_no_sort = jsonNoSort
+
     # === jsonl (json list) ===
-    jsonList = FmtProperty(
+    jsonList = Formatter(
         writer=lambda item: json.dumps(item),
         reader=lambda line: json.loads(line),
         exts=["jsonl"],
         line_mode=True,
         serialize=True,
     )
+    json_list = jsonList
+
     # === text list ===
-    txtList = FmtProperty(
+    txtList = Formatter(
         writer=lambda item: str(item),
         reader=lambda line: line.replace("\n", ""),
         exts=["txt"],
         line_mode=True,
     )
+    txt_list = txtList
+
     # === yaml ===
-    yaml = FmtProperty(
+    yaml = Formatter(
         writer=lambda f, obj: yaml.dump(obj, f),
         reader=lambda f: yaml.load(f, Loader=yaml.FullLoader),
         exts=["yml", "yaml"],
         serialize=True,
     )
 
+    # === csv list ===
+    csvList = Formatter(
+        # TODO: add a checker to ensure the input is list of list
+        writer=lambda f, obj: csv.writer(f).writerows(obj),
+        reader=lambda f: "".join([",".join(row) for row in csv.reader(f)]),
+        exts=["csv"],
+        serialize=True,
+    )
+    csv_list = csvList
 
-def infer_fmt_from_ext(ext: str, default: Optional[Fmt] = None) -> Fmt:
-    if ext.startswith("."):
-        ext = ext[1:]
+    all_fmts = [v for v in locals().values() if isinstance(v, Formatter)]
 
-    for fmt in Fmt:
-        if fmt.exts is not None and ext in fmt.exts:
-            return fmt
 
-    if default is not None:
-        return default
-    else:
-        raise RuntimeError(f'Cannot infer format for extension "{ext}"')
+# backward compatibility
+Fmt = fmts
+
+
+@dataclasses.dataclass(frozen=True)
+class Compressor:
+    # open function alternative to os.open
+    open_fn: Callable
+
+    # File extensions, used for format inference; the first extension is used for output
+    exts: Optional[List[str]] = None
+
+
+class compressors:
+    # === gzip ===
+    gzip = Compressor(open_fn=gzip.open)
+
+    # === bz2 ===
+    bz2 = Compressor(open_fn=bz2.open)
+
+    # === lzma ===
+    lzma = Compressor(open_fn=lzma.open)
+
+    all_compressors = [v for v in locals().values() if isinstance(v, Compressor)]
+
+
+def _infer_from_path(path: Path) -> Tuple[Formatter, Compressor]:
+    name = path.name
+    fmt = None
+    compressor = None
+
+    if "." not in name:
+        return fmt, compressor
+    name, ext = name.rsplit(".", 1)
+
+    # detect possible compressor extension
+    for x in compressors.all_compressors:
+        if x.exts is not None and ext in x.exts:
+            compressor = x
+
+            # take the next extension
+            if "." not in name:
+                return fmt, compressor
+            name, ext = name.rsplit(".", 1)
+
+            break
+
+    # detect possible format extension
+    for x in fmts.all_fmts:
+        if x.exts is not None and ext in x.exts:
+            fmt = x
+            break
+
+    return fmt, compressor
 
 
 def dump(
     path: Union[str, Path],
     obj: object,
-    fmt: Optional[Fmt] = None,
+    fmt: Optional[Formatter] = None,
+    compressor: Optional[Compressor] = None,
     serialization: Optional[bool] = None,
     parents: bool = True,
     append: bool = False,
@@ -794,6 +856,7 @@ def dump(
     :param path: the path to save the file.
     :param obj: the object to be saved.
     :param fmt: the format of the file; if None (default), inferred from path.
+    :param compressor: the compression format of the file; if None (default), inferred from path.
     :param serialization: whether or not to serialize the object before saving:
         * True: always serialize;
         * None (default): only serialize for the formats that needs it;
@@ -812,8 +875,12 @@ def dump(
     path = _unify_path(path)
 
     # Check path existence
-    if path.exists() and not exists_ok:
-        raise FileExistsError(str(path))
+    if path.exists():
+        if exists_ok and not append:
+            # make sure the existing file is removed in non-append mode
+            rm(path)
+        else:
+            raise FileExistsError(str(path))
 
     # Create parent directories
     if not path.parent.is_dir():
@@ -823,13 +890,18 @@ def dump(
             raise FileNotFoundError(str(path.parent))
 
     # Infer format
+    if fmt is None or compressor is None:
+        inferred_fmt, inferred_compressor = _infer_from_path(path)
+        if fmt is None:
+            fmt = inferred_fmt
+        if compressor is None:
+            compressor = inferred_compressor
+
     if fmt is None:
-        fmt = infer_fmt_from_ext(path.suffix)
+        raise RuntimeError(f"Cannot infer format for file {path}")
 
     if append and not fmt.line_mode:
-        raise RuntimeWarning(
-            f"Appending to a format that's not list-like ({fmt}) may result in invalid file"
-        )
+        raise RuntimeWarning(f"Cannot append to a non-list-like format ({fmt})")
 
     # Serialize (when appropriate)
     if serialization is None:
@@ -845,8 +917,12 @@ def dump(
     file_mode = "w" if not append else "a"
     if fmt.binary:
         file_mode += "b"
+    elif compressor is not None:
+        file_mode += "t"
 
-    with open(path, file_mode) as f:
+    open_fn = open if compressor is None else compressor.open_fn
+
+    with open_fn(path, file_mode) as f:
         # Write content
         if not fmt.line_mode:
             fmt.writer(f, obj)
@@ -858,7 +934,8 @@ def dump(
 
 def load(
     path: Union[str, Path],
-    fmt: Optional[Fmt] = None,
+    fmt: Optional[Formatter] = None,
+    compressor: Optional[Compressor] = None,
     serialization: Optional[bool] = None,
     clz: Optional[Type] = None,
     error: str = "ignore",
@@ -867,11 +944,12 @@ def load(
     """
     Loads an object from a file.
     The format is automatically inferred from the file name, if not otherwise specified.
-    By default, if clz is given, deserialization (i.e., unpackingn from primitive types
+    By default, if clz is given, deserialization (i.e., unpacking from primitive types
     and data structures) is automatically performed for the formats that needs it (e.g., json).
 
     :param path: the path to load the object.
     :param fmt: the format of the file; if None (default), inferred from path.
+    :param compressor: the compression format of the file; if None (default), inferred from path.
     :param serialization: whether or not to deserialize the object after loading:
         * True: always serialize;
         * None (default): only serialize for the formats that needs it;
@@ -885,12 +963,19 @@ def load(
     path = _unify_path(path)
 
     # Infer format
+    if fmt is None or compressor is None:
+        inferred_fmt, inferred_compressor = _infer_from_path(path)
+        if fmt is None:
+            fmt = inferred_fmt
+        if compressor is None:
+            compressor = inferred_compressor
+
     if fmt is None:
-        fmt = infer_fmt_from_ext(path.suffix)
+        raise RuntimeError(f"Cannot infer format for file {path}")
 
     # Check arguments
     if iter_line and not fmt.line_mode:
-        raise RuntimeError(f"Cannot load format {fmt} file under line mode")
+        raise RuntimeWarning(f"Cannot iteratively load a non-list-like format ({fmt})")
 
     if serialization is None:
         serialization = fmt.serialize
@@ -899,16 +984,22 @@ def load(
     file_mode = "r"
     if fmt.binary:
         file_mode += "b"
+    elif compressor is not None:
+        file_mode += "t"
+
+    open_fn = open if compressor is None else compressor.open_fn
 
     # Load content
     if not fmt.line_mode:
-        with open(path, file_mode) as f:
+        with open_fn(path, file_mode) as f:
             obj = fmt.reader(f)
             if serialization:
                 obj = deserialize(obj, clz, error=error)
             return obj
     else:
-        iterator = LoadIterator(path, file_mode, fmt, serialization, clz, error)
+        iterator = LoadIterator(
+            path, file_mode, open_fn, fmt, serialization, clz, error
+        )
         if iter_line:
             return iterator
         else:
@@ -920,12 +1011,13 @@ class LoadIterator(Iterator):
         self,
         path: Path,
         file_mode: str,
-        fmt: FmtProperty,
+        open_fn: Callable,
+        fmt: Formatter,
         serialization: bool,
         clz: Optional[Type],
         error: str = "ignore",
     ):
-        self.fd = open(path, file_mode)
+        self.fd = open_fn(path, file_mode)
         self.fmt = fmt
         self.serialization = serialization
         self.clz = clz

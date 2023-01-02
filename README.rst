@@ -1,8 +1,7 @@
 Project ``seutil``
 ==================
 
-|PyPI| |GitHub release (latest by date including pre-releases)| |GitHub
-Workflow Status|
+|PyPI|_ |GitHubRelease|_ |GitHubWorkflow|_
 
 Python utilities for SE(+ML) research. This library stays reasonably
 up-to-date with the latest Python 3, currently 3.8.
@@ -32,7 +31,10 @@ up-to-date with the latest Python 3, currently 3.8.
 
 Full documentation can be found at `readthedocs`_.
 
-.. |PyPI| image:: https://img.shields.io/pypi/v/seutil
-.. |GitHub release (latest by date including pre-releases)| image:: https://img.shields.io/github/v/release/pengyunie/seutil?include_prereleases
-.. |GitHub Workflow Status| image:: https://img.shields.io/github/workflow/status/pengyunie/seutil/Python%20package
+.. |PyPI| image:: https://img.shields.io/pypi/v/seutil 
+.. _PyPI: https://pypi.org/project/seutil/
+.. |GitHubRelease| image:: https://img.shields.io/github/v/release/pengyunie/seutil?include_prereleases
+.. _GitHubRelease: https://github.com/pengyunie/seutil/releases
+.. |GitHubWorkflow| image:: https://img.shields.io/github/actions/workflow/status/pengyunie/seutil/python-package.yml?branch=master
+.. _GitHubWorkflow: https://github.com/pengyunie/seutil/actions/workflows/python-package.yml
 .. _readthedocs: https://seutil.readthedocs.io/en/latest/
