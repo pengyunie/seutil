@@ -34,6 +34,7 @@ function prepare_conda_env() {
         conda activate $env_name
 
         # Install libraries
+        pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
         pip install -e .[dev,io-3rd-party]
 }
 
