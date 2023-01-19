@@ -1,3 +1,9 @@
+"""
+Utilities for generating/manipulating latex files.
+
+Some parts inspired by https://github.com/JelteF/PyLaTeX, but this module means to be more lightweight.
+"""
+
 import abc
 import sys
 from pathlib import Path
@@ -8,6 +14,25 @@ from . import io, log
 logger = log.get_logger("latex")
 
 __all__ = ["LatexItem", "File"]
+
+
+def escape(s: str) -> str:
+    """
+    Escapes a string for latex.
+    """
+    escaped = ""
+    for c in s:
+        if c in "&%$#_{}":
+            escaped += "\\" + c
+        elif c == "~":
+            escaped += r"\textasciitilde{}"
+        elif c == "^":
+            escaped += r"\textasciicircum{}"
+        elif c == "\\":
+            escaped += r"\textbackslash{}"
+        else:
+            escaped += c
+    return escaped
 
 
 class LatexItem:
