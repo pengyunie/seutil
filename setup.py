@@ -33,7 +33,7 @@ setuptools.setup(
         "xmltodict>=0.2.2",
     ],
     extras_require={
-        "dev": ["pytest", "flake8", "black", "pytest-cov"],
+        "dev": ["pytest", "flake8", "black", "pytest-cov", "ipykernel"],
         "io-3rd-party": ["numpy", "pandas", "torch"],
     },
 )
