@@ -5,6 +5,8 @@ from typing import Optional
 
 from seutil import io
 
+TimeoutExpired = subprocess.TimeoutExpired
+
 
 class BashError(RuntimeError):
     def __init__(
