@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 
 import pytest
@@ -37,13 +38,31 @@ def test_update_env():
     assert "TEST_SEUTIL_BASH_ENV" not in os.environ
 
 
-def test_timeout_redirect(tmp_path: Path):
+def test_issue67_pass(tmp_path: Path):
     temp_script = tmp_path / "z.sh"
     su.io.dump(
         temp_script,
         """#!/bin/bash
 echo > z.txt
-sleep 1
+sleep 0.2
+echo "done" >> z.txt""",
+        fmt=su.io.fmts.txt,
+    )
+    temp_script.chmod(0o755)
+    with su.io.cd(tmp_path):
+        with pytest.raises(su.bash.TimeoutExpired):
+            su.bash.run("./z.sh", timeout=0.1)
+        time.sleep(0.2)
+        assert "done" not in su.io.load("z.txt")
+
+
+def test_issue67_fail1(tmp_path: Path):
+    temp_script = tmp_path / "z.sh"
+    su.io.dump(
+        temp_script,
+        """#!/bin/bash
+echo > z.txt
+sleep 0.2
 echo "done" >> z.txt""",
         fmt=su.io.fmts.txt,
     )
@@ -51,9 +70,23 @@ echo "done" >> z.txt""",
     with su.io.cd(tmp_path):
         with pytest.raises(su.bash.TimeoutExpired):
             su.bash.run("./z.sh > a.txt", timeout=0.1)
+        time.sleep(0.2)
+        assert "done" not in su.io.load("z.txt")
 
+
+def test_issue67_fail2(tmp_path: Path):
+    temp_script = tmp_path / "z.sh"
+    su.io.dump(
+        temp_script,
+        """#!/bin/bash
+echo > z.txt
+sleep 0.2
+echo "done" >> z.txt""",
+        fmt=su.io.fmts.txt,
+    )
+    temp_script.chmod(0o755)
+    with su.io.cd(tmp_path):
         with pytest.raises(su.bash.TimeoutExpired):
             su.bash.run("./z.sh 2>&1", timeout=0.1)
-
-        with pytest.raises(su.bash.TimeoutExpired):
-            su.bash.run("./z.sh", timeout=0.1)
+        time.sleep(0.2)
+        assert "done" not in su.io.load("z.txt")
