@@ -6,6 +6,7 @@ Some parts inspired by https://github.com/JelteF/PyLaTeX, but this module means 
 
 import abc
 import sys
+from enum import Enum
 from pathlib import Path
 from typing import List, Optional, Union
 
@@ -42,31 +43,46 @@ class LatexItem:
 
 
 class File(LatexItem):
+    class NewlineMode(Enum):
+        auto = "auto"
+        always = "always"
+        never = "never"
+
     def __init__(
         self,
         path: Optional[Path] = None,
         auto_notice: bool = True,
-        auto_insert_newline: bool = False,
+        newline_mode: Union[NewlineMode, str] = NewlineMode.auto,
     ):
         """
         Creates a latex file which holds a list of items.
-        :param path: the path to use when saving the file (for backward compatibility).
-        :param auto_notice: whether to automatically add a notice indicating how the file is generated.
-        :param auto_insert_newline: whether to automatically insert a newline between items.
+        :param path: the path to use when saving the file.
+        :param auto_notice: whether to automatically add a notice comment in the generated file which contains the name of the script file and function.
+        :param newline_mode: mode for inserting newlines between items:
+            - auto: (default) insert newlines if the previous item doesn't end with newline.
+            - always: always insert newlines.
+            - never: never insert newlines.
+        TODO: eventually make sure all items that are sensitive to newlines insert newlines for themselves, and change the default to never.
         """
         self.path: Optional[Path] = path
         self.auto_notice: bool = auto_notice
-        self.auto_insert_newline = auto_insert_newline
+        self.newline_mode: File.NewlineMode = File.NewlineMode(newline_mode)
         self.items: List[LatexItem] = []
 
     def to_latex(self) -> str:
-        sep = "\n" if self.auto_insert_newline else ""
-        return sep.join([item.to_latex() for item in self.items])
+        out = ""
+        for item in self.items:
+            if self.newline_mode == File.NewlineMode.always:
+                out += "\n"
+            elif self.newline_mode == File.NewlineMode.auto and not out.endswith("\n"):
+                out += "\n"
+            out += item.to_latex()
+        return out
 
     def save(self, path: Optional[Path] = None, exists: str = "overwrite"):
         """
         Saves the file to the given path.
-        :param path: the path to save the file.
+        :param path: the path to save the file (can be provided either here or during the creation of a File instance).
         :param exists: the behavior when the file already exists:
             - overwrite: (default) overwrite the file.
             - append: append to the file.
@@ -132,28 +148,21 @@ class Comment(LatexItem):
 
 
 class MacroUse(LatexItem):
-
     USEMACRO_COMMAND = "UseMacro"
 
-    def __init__(self, key: str, newline: bool = False):
+    def __init__(self, key: str):
         self.key = key
-        self.newline = newline
 
     def to_latex(self) -> str:
-        s = "\\" + self.USEMACRO_COMMAND + "{" + self.key + "}"
-        if self.newline:
-            s += "\n"
-        return s
+        return "\\" + self.USEMACRO_COMMAND + "{" + self.key + "}"
 
 
 class Macro(LatexItem):
-
     DEFMACRO_COMMAND = "DefMacro"
 
-    def __init__(self, key: str, value: Optional[str] = None, newline: bool = True):
+    def __init__(self, key: str, value: Optional[str] = None):
         self.key = key
         self.value = value
-        self.newline = newline
 
     def use(self) -> MacroUse:
         return MacroUse(self.key)
@@ -162,6 +171,4 @@ class Macro(LatexItem):
         if self.value is None:
             raise ValueError(f"Macro {self.key} has no value")
         s = "\\" + self.DEFMACRO_COMMAND + "{" + self.key + "}{" + self.value + "}"
-        if self.newline:
-            s += "\n"
         return s
