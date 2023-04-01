@@ -42,6 +42,50 @@ class LatexItem:
         raise NotImplementedError()
 
 
+class Text(LatexItem):
+    def __init__(self, s: str):
+        self.s = s
+
+    def to_latex(self) -> str:
+        return self.s
+
+
+class Comment(LatexItem):
+    def __init__(self, s: str):
+        self.s = s
+
+    def to_latex(self) -> str:
+        return f"%% {self.s}\n"
+
+
+class MacroUse(LatexItem):
+    USEMACRO_COMMAND = "UseMacro"
+
+    def __init__(self, key: str):
+        self.key = key
+
+    def to_latex(self) -> str:
+        return "\\" + self.USEMACRO_COMMAND + "{" + self.key + "}"
+
+
+class Macro(LatexItem):
+    DEFMACRO_COMMAND = "DefMacro"
+
+    def __init__(self, key: str, value: Optional[str] = None):
+        self.key = key
+        self.value = value
+
+    def use(self) -> str:
+        # deprecated: use `MacroUse` instead
+        return "\\" + MacroUse.USEMACRO_COMMAND + "{" + self.key + "}"
+
+    def to_latex(self) -> str:
+        if self.value is None:
+            raise ValueError(f"Macro {self.key} has no value")
+        s = "\\" + self.DEFMACRO_COMMAND + "{" + self.key + "}{" + self.value + "}\n"
+        return s
+
+
 class File(LatexItem):
     class NewlineMode(Enum):
         auto = "auto"
@@ -128,45 +172,6 @@ class File(LatexItem):
     def append_comment(self, s: str) -> "File":
         return self.append(Comment(s))
 
-
-class Text(LatexItem):
-    def __init__(self, s: str):
-        self.s = s
-
-    def to_latex(self) -> str:
-        return self.s
-
-
-class Comment(LatexItem):
-    def __init__(self, s: str):
-        self.s = s
-
-    def to_latex(self) -> str:
-        return f"%% {self.s}\n"
-
-
-class MacroUse(LatexItem):
-    USEMACRO_COMMAND = "UseMacro"
-
-    def __init__(self, key: str):
-        self.key = key
-
-    def to_latex(self) -> str:
-        return "\\" + self.USEMACRO_COMMAND + "{" + self.key + "}"
-
-
-class Macro(LatexItem):
-    DEFMACRO_COMMAND = "DefMacro"
-
-    def __init__(self, key: str, value: Optional[str] = None):
-        self.key = key
-        self.value = value
-
-    def use(self) -> MacroUse:
-        return MacroUse(self.key)
-
-    def to_latex(self) -> str:
-        if self.value is None:
-            raise ValueError(f"Macro {self.key} has no value")
-        s = "\\" + self.DEFMACRO_COMMAND + "{" + self.key + "}{" + self.value + "}"
-        return s
+    def append_macro(self, macro: Macro) -> "File":
+        # deprecated: use `append` instead
+        return self.append(macro)
