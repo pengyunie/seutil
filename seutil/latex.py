@@ -117,17 +117,13 @@ class File(LatexItem):
                 raise ValueError(f"Invalid parameter: {exists=}")
         io.dump(path, s, io.Fmt.txt)
 
-    def append(self, item: Union[str, LatexItem], auto_newline: bool = True) -> "File":
+    def append(self, item: Union[str, LatexItem]) -> "File":
         if isinstance(item, str):
-            if auto_newline and not item.endswith("\n"):
-                item += "\n"
             item = Text(item)
         self.items.append(item)
         return self
 
-    def append_comment(self, s: str, auto_newline: bool = True) -> "File":
-        if auto_newline and not s.endswith("\n"):
-            s += "\n"
+    def append_comment(self, s: str) -> "File":
         return self.append(Comment(s))
 
 
@@ -144,7 +140,7 @@ class Comment(LatexItem):
         self.s = s
 
     def to_latex(self) -> str:
-        return f"%% {self.s}"
+        return f"%% {self.s}\n"
 
 
 class MacroUse(LatexItem):
