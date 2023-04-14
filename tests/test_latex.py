@@ -24,3 +24,23 @@ def test_escape():
     assert su.latex.escape("a~") == r"a\textasciitilde{}"
     assert su.latex.escape("a^") == r"a\textasciicircum{}"
     assert su.latex.escape("a\\") == r"a\textbackslash{}"
+
+
+def test_latex_text():
+    x = su.latex.Text("test")
+    assert x.to_latex() == "test"
+
+
+def test_latex_comment():
+    x = su.latex.Comment("test")
+    assert x.to_latex() == "%% test\n"
+
+
+def test_latex_macro_use():
+    x = su.latex.MacroUse("test")
+    assert x.to_latex() == "\\UseMacro{test}"
+
+
+def test_latex_macro_def():
+    x = su.latex.Macro("test", "value")
+    assert x.to_latex() == "\\DefMacro{test}{value}\n"
