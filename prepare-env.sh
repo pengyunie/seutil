@@ -1,4 +1,5 @@
 #!/bin/bash
+# prepare a conda environment for developing seutil
 
 _DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
@@ -27,15 +28,14 @@ function prepare_conda_env() {
         
         # Preparation
         set -e
-        set -x
         source ${conda_path}
         conda env remove --name $env_name
         conda create --name $env_name python=$PYTHON_VERSION pip -y
         conda activate $env_name
 
         # Install libraries
-        pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
-        pip install -e .[dev,io-3rd-party]
+        pip install torch --index-url https://download.pytorch.org/whl/cpu  # prioritize the use of cpu version of pytorch
+        pip install -e .[dev,dev-opt]
 }
 
 
