@@ -36,7 +36,6 @@ class StoreInDict(argparse.Action):
     #     # end if
     #     return options, args
 
-
     def __call__(self, parser, namespace, values, option_string=None):
         d = getattr(namespace, self.dest)
         types = dict()
@@ -61,7 +60,7 @@ class StoreInDict(argparse.Action):
                 d[name] = d[name][0]
             # end if
             if types[name] != "":
-                d[name] = eval("{}(\"{}\")".format(types[name], d[name]))
+                d[name] = eval('{}("{}")'.format(types[name], d[name]))
                 continue
             # end if
             try:
@@ -106,7 +105,7 @@ def main(argv, actions: Dict[str, Callable], normalize_options: Callable[[Dict],
     # end if
 
     # Prevent distinguish between positional arguments and optional arguments (HACK)
-    p = argparse.ArgumentParser(prefix_chars=' ')
+    p = argparse.ArgumentParser(prefix_chars=" ")
     p.add_argument("options", nargs="*", action=StoreInDict, default=dict())
     options = p.parse_args(cli_options).options
 

@@ -43,16 +43,12 @@ def test_mktmp_argument_dir():
     # Test argument dir of mktmp, mktmp_dir
     tmp_dir_1 = su.io.mktmp_dir()
 
-    tmp_dir_2 = su.io.mktmp_dir(
-        prefix=PREFIX, suffix=SUFFIX, separator=SEPARATOR, dir=tmp_dir_1
-    )
+    tmp_dir_2 = su.io.mktmp_dir(prefix=PREFIX, suffix=SUFFIX, separator=SEPARATOR, dir=tmp_dir_1)
     assert tmp_dir_2.is_dir()
     assert tmp_dir_2.name.startswith(PREFIX + SEPARATOR)
     assert tmp_dir_2.name.endswith(SEPARATOR + SUFFIX)
 
-    tmp_file = su.io.mktmp(
-        prefix=PREFIX, suffix=SUFFIX, separator=SEPARATOR, dir=tmp_dir_1
-    )
+    tmp_file = su.io.mktmp(prefix=PREFIX, suffix=SUFFIX, separator=SEPARATOR, dir=tmp_dir_1)
     assert tmp_file.is_file()
     assert tmp_file.name.startswith(PREFIX + SEPARATOR)
     assert tmp_file.name.endswith(SEPARATOR + SUFFIX)

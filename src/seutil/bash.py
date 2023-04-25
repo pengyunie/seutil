@@ -34,15 +34,11 @@ class BashError(RuntimeError):
             s += f"STDERR:\n{self.stderr}\n"
         else:
             if len(self.stdout) > 800:
-                s += (
-                    f"STDOUT (truncated):\n{self.stdout[:400]}...{self.stdout[-400:]}\n"
-                )
+                s += f"STDOUT (truncated):\n{self.stdout[:400]}...{self.stdout[-400:]}\n"
             else:
                 s += f"STDOUT:\n{self.stdout}\n"
             if len(self.stderr) > 800:
-                s += (
-                    f"STDERR (truncated):\n{self.stderr[:400]}...{self.stderr[-400:]}\n"
-                )
+                s += f"STDERR (truncated):\n{self.stderr[:400]}...{self.stderr[-400:]}\n"
             else:
                 s += f"STDERR:\n{self.stderr}\n"
         return s
@@ -118,22 +114,13 @@ def run(
             # we don't call process.wait() as .__exit__ does that for us.
             raise
         retcode = process.poll()
-    completed_process = subprocess.CompletedProcess(
-        process.args, retcode, stdout, stderr
-    )
+    completed_process = subprocess.CompletedProcess(process.args, retcode, stdout, stderr)
 
     # check return code
-    if (
-        check_returncode is not None
-        and completed_process.returncode != check_returncode
-    ):
+    if check_returncode is not None and completed_process.returncode != check_returncode:
         raise BashError(cmd, completed_process, check_returncode)
 
-    if (
-        completed_process.returncode != 0
-        and check_returncode is not None
-        and warn_nonzero
-    ):
+    if completed_process.returncode != 0 and check_returncode is not None and warn_nonzero:
         warnings.warn(
             f"Bash command `{cmd}` returned non-zero exit code: {completed_process.returncode}",
             RuntimeWarning,

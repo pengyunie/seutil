@@ -17,9 +17,8 @@ class Macros:
         CONFIG_FILE: Path = DEFAULT_CONFIG_FILE
     # end if
 
-def get_config(key: str,
-               config_file: Path = Macros.CONFIG_FILE,
-               is_use_default: bool = True) -> any:
+
+def get_config(key: str, config_file: Path = Macros.CONFIG_FILE, is_use_default: bool = True) -> any:
     try:
         with open(str(config_file), "r") as f:
             configs = yaml.load(f, Loader=yaml.FullLoader)

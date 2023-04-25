@@ -52,9 +52,7 @@ class MavenModule:
     def dependency_classpath(self) -> str:
         with su.io.cd(self.project.dir / self.rel_path):
             tmp_file = su.io.mktmp(prefix="cp")
-            su.bash.run(
-                f"mvn dependency:build-classpath -Dmdep.outputFile={tmp_file}", 0
-            )
+            su.bash.run(f"mvn dependency:build-classpath -Dmdep.outputFile={tmp_file}", 0)
             classpath = su.io.load(tmp_file, fmt=su.io.Fmt.txt)
             su.io.rm(tmp_file)
             return classpath
@@ -77,9 +75,7 @@ class MavenModule:
 
     def backup_pom(self):
         if len(self.pom_modified) > 0:
-            raise RuntimeError(
-                f"Cannot backup pom.xml for {self.coordinate} because it has been modified"
-            )
+            raise RuntimeError(f"Cannot backup pom.xml for {self.coordinate} because it has been modified")
         with su.io.cd(self.project.dir / self.rel_path):
             su.bash.run("cp pom.xml pom.xml.backup", 0)
 
@@ -95,15 +91,13 @@ class MavenModule:
             logger.debug(f"pom.xml for {self.coordinate} already did {modification}")
             return
 
-        pom = xmltodict.parse(
-            su.io.load(self.project.dir / self.rel_path / "pom.xml", fmt=su.io.Fmt.txt)
-        )
+        pom = xmltodict.parse(su.io.load(self.project.dir / self.rel_path / "pom.xml", fmt=su.io.Fmt.txt))
 
         plugins = pom.get("project", {}).get("build", {}).get("plugins", {}).get("plugin", [])
         if not isinstance(plugins, list):
             plugins = [plugins]
             pom.get("build", {}).get("plugins", {})["plugin"] = plugins
-            
+
         to_remove = None
         for i, plugin in enumerate(plugins):
             if plugin.get("artifactId") == artifact_id:
@@ -212,9 +206,7 @@ class MavenProject:
     def get_module_by_path(self, file_path: Path) -> MavenModule:
         module_path = file_path.parent
         while module_path != Path("."):
-            if (module_path / "src/main/java").exists() or (
-                module_path / "src/test/java"
-            ).exists():
+            if (module_path / "src/main/java").exists() or (module_path / "src/test/java").exists():
                 break
             module_path = module_path.parent
         for module in self.modules:

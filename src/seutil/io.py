@@ -15,8 +15,7 @@ import tempfile
 import warnings
 from enum import Enum
 from pathlib import Path
-from typing import (Any, Callable, Dict, Iterator, List, Optional, Tuple, Type,
-                    TypeVar, Union, get_type_hints)
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Type, TypeVar, Union, get_type_hints
 
 import recordclass
 import typing_inspect
@@ -58,21 +57,14 @@ def _unify_path(path: Union[str, Path]) -> Path:
 
 
 def _is_obj_record_class(obj: Any) -> bool:
-    return (
-        obj is not None
-        and isinstance(obj, recordclass.mutabletuple)
-        or isinstance(obj, recordclass.dataobject)
-    )
+    return obj is not None and isinstance(obj, recordclass.mutabletuple) or isinstance(obj, recordclass.dataobject)
 
 
 def _is_clz_record_class(clz: Type) -> bool:
     return (
         clz is not None
         and inspect.isclass(clz)
-        and (
-            issubclass(clz, recordclass.mutabletuple)
-            or issubclass(clz, recordclass.dataobject)
-        )
+        and (issubclass(clz, recordclass.mutabletuple) or issubclass(clz, recordclass.dataobject))
     )
 
 
@@ -81,12 +73,7 @@ def _is_obj_named_tuple(obj: Any) -> bool:
 
 
 def _is_clz_named_tuple(clz: Type) -> bool:
-    return (
-        clz is not None
-        and inspect.isclass(clz)
-        and issubclass(clz, tuple)
-        and hasattr(clz, "_fields")
-    )
+    return clz is not None and inspect.isclass(clz) and issubclass(clz, tuple) and hasattr(clz, "_fields")
 
 
 # ==========
@@ -275,9 +262,7 @@ def register_type(
     return changed
 
 
-def unregister_type(
-    clz: Type, serializer: bool = True, deserializer: bool = True
-) -> bool:
+def unregister_type(clz: Type, serializer: bool = True, deserializer: bool = True) -> bool:
     """
     Unregister customized serializer and/or deserializer of a type.
     Similar to register_type, the unregistering only happens for this particular type and *not* for its subtypes.
@@ -328,10 +313,7 @@ def serialize(
         return {k: serialize(v, fmt) for k, v in obj._asdict().items()}
     elif dataclasses.is_dataclass(obj):
         # Dataclass
-        return {
-            f.name: serialize(getattr(obj, f.name), fmt)
-            for f in dataclasses.fields(obj)
-        }
+        return {f.name: serialize(getattr(obj, f.name), fmt) for f in dataclasses.fields(obj)}
     elif isinstance(obj, (list, set, tuple)):
         # List-like: uniform to list; recursively serialize content
         return [serialize(item, fmt) for item in obj]
@@ -358,9 +340,7 @@ def serialize(
         # Use registered serializer if exists
         return _SERIALIZERS[type(obj)](obj)
     else:
-        raise TypeError(
-            f"Cannot serialize object of type {type(obj)}, please consider writing a serialize() function"
-        )
+        raise TypeError(f"Cannot serialize object of type {type(obj)}, please consider writing a serialize() function")
 
 
 class DeserializationError(RuntimeError):
@@ -438,9 +418,7 @@ def deserialize(
 
         if ret is None:
             if error == "raise":
-                raise DeserializationError(
-                    data, clz, "All inner types are incompatible"
-                )
+                raise DeserializationError(data, clz, "All inner types are incompatible")
             else:
                 return data
         else:
@@ -461,9 +439,7 @@ def deserialize(
     if clz_origin in [list, tuple, set, collections.deque, frozenset]:
         if not isinstance(data, list):
             if error == "raise":
-                raise DeserializationError(
-                    data, clz, "Data does not have list structure"
-                )
+                raise DeserializationError(data, clz, "Data does not have list structure")
             else:
                 return data
 
@@ -482,10 +458,7 @@ def deserialize(
             )
         else:
             # Unpack list
-            ret = [
-                deserialize(x, clz_args[0] if generic else None, error=error)
-                for x in data
-            ]
+            ret = [deserialize(x, clz_args[0] if generic else None, error=error) for x in data]
 
             if clz_origin != list:
                 # Convert to appropriate type
@@ -502,9 +475,7 @@ def deserialize(
     ]:
         if not isinstance(data, dict):
             if error == "raise":
-                raise DeserializationError(
-                    data, clz, "Data does not have dict structure"
-                )
+                raise DeserializationError(data, clz, "Data does not have dict structure")
             else:
                 return data
 
@@ -575,9 +546,7 @@ def deserialize(
         for f in dataclasses.fields(clz):
             if f.name in data:
                 field_values = init_field_values if f.init else non_init_field_values
-                field_values[f.name] = deserialize(
-                    data.get(f.name), f.type, error=error
-                )
+                field_values[f.name] = deserialize(data.get(f.name), f.type, error=error)
         obj = clz(**init_field_values)
         for f_name, f_value in non_init_field_values.items():
             # use object.__setattr__ in case clz is frozen
@@ -629,9 +598,7 @@ try:
     register_type(np.half, serializer=np.half.item, deserializer=np.half)
     register_type(np.single, serializer=np.single.item, deserializer=np.single)
     register_type(np.double, serializer=np.double.item, deserializer=np.double)
-    register_type(
-        np.longdouble, serializer=np.longdouble.item, deserializer=np.longdouble
-    )
+    register_type(np.longdouble, serializer=np.longdouble.item, deserializer=np.longdouble)
 
     # other scalars
     register_type(np.bool_, serializer=np.bool_.item, deserializer=np.bool_)
@@ -644,9 +611,7 @@ try:
     import pandas as pd
 
     # series
-    register_type(
-        pd.Series, serializer=lambda x: serialize(x.to_dict()), deserializer=pd.Series
-    )
+    register_type(pd.Series, serializer=lambda x: serialize(x.to_dict()), deserializer=pd.Series)
 
     # dataframe
     register_type(
@@ -725,19 +690,13 @@ class fmts:
         serialize=True,
     )
     # Use yaml loader to allow formatting errors (e.g., trailing commas), but cannot handle unprintable chars
-    jsonFlexible = dataclasses.replace(
-        json, reader=lambda f: yaml.load(f, Loader=yaml.FullLoader)
-    )
+    jsonFlexible = dataclasses.replace(json, reader=lambda f: yaml.load(f, Loader=yaml.FullLoader))
     json_flexible = jsonFlexible
     # Pretty-print version with sorting keys
-    jsonPretty = dataclasses.replace(
-        json, writer=lambda f, obj: json.dump(obj, f, sort_keys=True, indent=4)
-    )
+    jsonPretty = dataclasses.replace(json, writer=lambda f, obj: json.dump(obj, f, sort_keys=True, indent=4))
     json_pretty = jsonPretty
     # Pretty-print version without sorting keys
-    jsonNoSort = dataclasses.replace(
-        json, writer=lambda f, obj: json.dump(obj, f, indent=4)
-    )
+    jsonNoSort = dataclasses.replace(json, writer=lambda f, obj: json.dump(obj, f, indent=4))
     json_no_sort = jsonNoSort
 
     # === jsonl (json list) ===
@@ -997,9 +956,7 @@ def load(
                 obj = deserialize(obj, clz, error=error)
             return obj
     else:
-        iterator = LoadIterator(
-            path, file_mode, open_fn, fmt, serialization, clz, error
-        )
+        iterator = LoadIterator(path, file_mode, open_fn, fmt, serialization, clz, error)
         if iter_line:
             return iterator
         else:

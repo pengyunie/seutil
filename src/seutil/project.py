@@ -115,20 +115,14 @@ class Project:
         if (downloads_dir / name).exists():
             if exists == "ignore":
                 self._dir = downloads_dir / name
-                logger.info(
-                    f"Project {self.full_name}: existing at {downloads_dir / name}"
-                )
+                logger.info(f"Project {self.full_name}: existing at {downloads_dir / name}")
                 return
             elif exists == "remove":
                 io.rmdir(downloads_dir / name)
-                logger.info(
-                    f"Project {self.full_name}: removed existing at {downloads_dir / name}"
-                )
+                logger.info(f"Project {self.full_name}: removed existing at {downloads_dir / name}")
             elif exists == "pull":
                 self._dir = downloads_dir / name
-                logger.info(
-                    f"Project {self.full_name}: existing at {downloads_dir / name}"
-                )
+                logger.info(f"Project {self.full_name}: existing at {downloads_dir / name}")
                 self.fetch()
                 return
             elif exists == "error":
@@ -156,9 +150,7 @@ class Project:
         """
         if self._dir is None:
             if error_not_exists:
-                raise RuntimeError(
-                    f"Project {self.full_name}: not cloned yet, can not remove"
-                )
+                raise RuntimeError(f"Project {self.full_name}: not cloned yet, can not remove")
             else:
                 logger.info(f"Project {self.full_name}: already removed")
         else:
@@ -190,9 +182,7 @@ class Project:
         :param forced: if True, do force checkout (discarding all local changes that might prevent a checkout).
         """
         self.require_cloned("checkout")
-        logger.info(
-            f"Project {self.full_name}: checking out revision {revision} ({forced=})"
-        )
+        logger.info(f"Project {self.full_name}: checking out revision {revision} ({forced=})")
 
         with io.cd(self._dir):
             cmd = f"git checkout {revision}"
@@ -215,9 +205,7 @@ class Project:
         """
         self.require_cloned("get_revisions_lattice")
         with io.cd(self._dir):
-            revisions = bash.run(
-                "git rev-list HEAD --topo-order --reverse --parents", 0
-            ).stdout.strip()
+            revisions = bash.run("git rev-list HEAD --topo-order --reverse --parents", 0).stdout.strip()
         revision2node = {}
         lattice = ds.lattice.Lattice()
         for line in revisions.splitlines():
@@ -272,13 +260,9 @@ class Project:
                 if errors == "ignore":
                     pass
                 elif errors == "warning":
-                    warnings.warn(
-                        f"Project {self.full_name}: error at revision {revision}: {traceback.format_exc()}"
-                    )
+                    warnings.warn(f"Project {self.full_name}: error at revision {revision}: {traceback.format_exc()}")
                 elif errors == "collate":
-                    warnings.warn(
-                        f"Project {self.full_name}: error at revision {revision}: {traceback.format_exc()}"
-                    )
+                    warnings.warn(f"Project {self.full_name}: error at revision {revision}: {traceback.format_exc()}")
                     errored_revisions.append(revision)
                     exc_infos.append(sys.exc_info())
                 elif errors == "error":

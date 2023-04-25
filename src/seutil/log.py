@@ -59,9 +59,7 @@ def setup(
 
     # update the stderr handler
     handler_stderr.setLevel(level_stderr)
-    handler_stderr.setFormatter(
-        logging.Formatter(fmt_stderr, datefmt_stderr, style="{")
-    )
+    handler_stderr.setFormatter(logging.Formatter(fmt_stderr, datefmt_stderr, style="{"))
     root_logger.addHandler(handler_stderr)
 
     # update the file handler

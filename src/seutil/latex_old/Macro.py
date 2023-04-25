@@ -8,7 +8,6 @@ logger = log.get_logger("latex.Macro")
 
 
 class Macro:
-
     T = TypeVar("T")
 
     def __init__(
@@ -52,9 +51,7 @@ class Macro:
 
     # Deprecated
     @classmethod
-    def define(
-        cls, key: str, value_fmt: Union[str, Any], *values, **values_items
-    ) -> "Macro":
+    def define(cls, key: str, value_fmt: Union[str, Any], *values, **values_items) -> "Macro":
         if len(values) != 0 or len(values_items) != 0:
             return Macro(key, value=value_fmt.format(*values, **values_items))
         else:

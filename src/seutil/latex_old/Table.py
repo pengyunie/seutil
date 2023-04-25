@@ -1,7 +1,7 @@
 class Table:
-
-    def __init__(self, big=False, font_size="small", align="center", caption="Default Table",
-                 label="fig:table:default"):
+    def __init__(
+        self, big=False, font_size="small", align="center", caption="Default Table", label="fig:table:default"
+    ):
         self.big = big
         self.font_size = font_size
         self.align = align

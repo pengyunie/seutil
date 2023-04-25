@@ -5,7 +5,6 @@ from .test_io_ser import check_serialization_ok
 
 
 class Test_io_ser_numpy:
-
     np = pytest.importorskip("numpy")
 
     def test_ser_array_int_1d(self):
@@ -118,7 +117,6 @@ class Test_io_ser_numpy:
 
 
 class Test_io_ser_pandas:
-
     pd = pytest.importorskip("pandas")
 
     def test_ser_series(self):
@@ -137,7 +135,6 @@ class Test_io_ser_pandas:
 
 
 class Test_io_ser_pytorch:
-
     torch = pytest.importorskip("torch")
 
     def test_ser_tensor_scaler_long(self):

@@ -7,7 +7,6 @@ from .TestSupport import TestSupport
 
 
 class test_GitHubUtils(unittest.TestCase):
-
     @unittest.skip("Require GitHub token, which is not available on CI")
     def test_search_repos_with_username(self):
         test_user = "google"
@@ -22,5 +21,5 @@ class test_GitHubUtils(unittest.TestCase):
         self.assertTrue(len(test_repos_3) == 0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

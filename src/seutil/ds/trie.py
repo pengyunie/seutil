@@ -38,9 +38,7 @@ class Trie(Generic[TElem, TValue]):
         """
         raise NotImplementedError()
 
-    def get(
-        self, key: Iterable[TElem], default: Optional[TValue] = None
-    ) -> Optional[TValue]:
+    def get(self, key: Iterable[TElem], default: Optional[TValue] = None) -> Optional[TValue]:
         """
         Gets the value of the given key, or the default value if the key does not exist.
         """
@@ -63,9 +61,7 @@ class Trie(Generic[TElem, TValue]):
             raise KeyError(f"Key {key} does not exist in the trie")
         return cur[self.empty_elem]
 
-    def set(
-        self, key: Iterable[TElem], value: TValue = True, exist_ok: bool = True
-    ) -> TValue:
+    def set(self, key: Iterable[TElem], value: TValue = True, exist_ok: bool = True) -> TValue:
         """
         Sets the value of the given key.
         :param key: the key to set.
@@ -89,9 +85,7 @@ class Trie(Generic[TElem, TValue]):
     def __setitem__(self, key: Iterable[TElem], value: TValue):
         self.set(key, value, exist_ok=True)
 
-    def compute(
-        self, key: Iterable[TElem], update_func: Callable[[Optional[TValue]], TValue]
-    ) -> TValue:
+    def compute(self, key: Iterable[TElem], update_func: Callable[[Optional[TValue]], TValue]) -> TValue:
         """
         Computes the value of the given key (potentially add/remove a key-value pair).
         Faster than get+set by avoiding searching for the key twice.

@@ -8,6 +8,7 @@ class TestSupport:
     """
     Macros, utility functions for tests.
     """
+
     THIS_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
     PROJECT_DIR = THIS_DIR.parent
     SUBJECTS_DIR = PROJECT_DIR / "resources"
@@ -36,5 +37,6 @@ class TestSupport:
             shutil.rmtree(self.path)
             os.chdir(self.old_path)
             return
+
     # end class
     get_playground_path.SUBJECTS_DIR = SUBJECTS_DIR

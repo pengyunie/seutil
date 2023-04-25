@@ -40,9 +40,7 @@ class PBarManager:
                 # write details of the current focused instance
                 focus = self.instances[self.cur]
                 ncols = _screen_shape_wrapper()(self.out)[0] - len(summaries)
-                self.out.write(
-                    focus.format_meter(**{**focus.format_dict, "ncols": ncols})
-                )
+                self.out.write(focus.format_meter(**{**focus.format_dict, "ncols": ncols}))
 
                 self.out.flush()
 

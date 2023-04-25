@@ -4,7 +4,6 @@ from logging.handlers import RotatingFileHandler
 
 
 class LoggingUtils:
-
     logging_format = "[{relativeCreated:6.0f}{levelname[0]}]{name}: {message}"
     logging_format_detail = "[{asctime}|{relativeCreated:.3f}|{levelname:7}]{name}: {message} [@{filename}:{lineno}|{funcName}|pid {process}|tid {thread}]"
 
@@ -49,8 +48,7 @@ class LoggingUtils:
     loggers = list()
 
     @classmethod
-    def get_logger(cls, name: str,
-                   level: int = None) -> logging.Logger:
+    def get_logger(cls, name: str, level: int = None) -> logging.Logger:
         if level is None:
             level = cls.default_level
         # end if

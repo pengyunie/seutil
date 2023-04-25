@@ -193,9 +193,7 @@ def test_ser_record_class():
         k: Optional[ExampleNamedTuple] = None
 
     check_serialization_ok(
-        obj=ExampleRecordClass(
-            h=4, i=0.5, j={"a": 4, "b": 6.0}, k=ExampleNamedTuple(99, [3, 5], 42.0)
-        ),
+        obj=ExampleRecordClass(h=4, i=0.5, j={"a": 4, "b": 6.0}, k=ExampleNamedTuple(99, [3, 5], 42.0)),
         data={
             "h": 4,
             "i": 0.5,
@@ -216,9 +214,7 @@ def test_ser_data_class():
         k: Optional[ExampleNamedTuple] = None
 
     check_serialization_ok(
-        obj=ExampleDataClass(
-            h=4, i=0.5, j={"a": 4, "b": 6.0}, k=ExampleNamedTuple(99, [3, 5], 42.0)
-        ),
+        obj=ExampleDataClass(h=4, i=0.5, j={"a": 4, "b": 6.0}, k=ExampleNamedTuple(99, [3, 5], 42.0)),
         data={
             "h": 4,
             "i": 0.5,

@@ -11,6 +11,7 @@ class Stream:
     """
     Streams help manipulate sequences of objects.
     """
+
     def __init__(self):
         self.items = list()
         return
@@ -34,7 +35,9 @@ class Stream:
         """
         with IOUtils.cd(dir_path):
             cmd_find = "find -mindepth 1 -maxdepth 1 -type f"
-            files = subprocess.run(["bash","-c",cmd_find], stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n")[:-1]
+            files = (
+                subprocess.run(["bash", "-c", cmd_find], stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n")[:-1]
+            )
         # end with
         files = [file[2:] for file in files]
         stream = cls.of(files)
@@ -48,7 +51,9 @@ class Stream:
         """
         with IOUtils.cd(dir_path):
             cmd_find = "find -mindepth 1 -maxdepth 1 -type d"
-            dirs = subprocess.run(["bash","-c",cmd_find], stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n")[:-1]
+            dirs = (
+                subprocess.run(["bash", "-c", cmd_find], stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n")[:-1]
+            )
         # end with
         dirs = [dir[2:] for dir in dirs]
         stream = cls.of(dirs)
@@ -67,16 +72,14 @@ class Stream:
     def reduce(self, count_func: Callable[[str], float] = lambda x: 1):
         return sum([count_func(f) for f in self.items])
 
-    def sorted(self, key: Callable[[str], object] = lambda f: f,
-               reverse: bool = False):
+    def sorted(self, key: Callable[[str], object] = lambda f: f, reverse: bool = False):
         """
         Sorts the list of files in the dataset.
         """
         list.sort(self.items, key=key, reverse=reverse)
         return self
 
-    def map(self, map_func: Callable[[str], object],
-            errors: str = "raise", default: object = ""):
+    def map(self, map_func: Callable[[str], object], errors: str = "raise", default: object = ""):
         def new_items_generator():
             for item in self.items:
                 try:
@@ -89,11 +92,11 @@ class Stream:
                 else:
                     yield new_item
             # end for
+
         # end def
         return Stream.of(new_items_generator())
 
-    def peak(self, peak_func: Callable[[str], None],
-             errors: str = "ignore"):
+    def peak(self, peak_func: Callable[[str], None], errors: str = "ignore"):
         for item in self.items:
             try:
                 peak_func(item)
@@ -105,8 +108,7 @@ class Stream:
         # end for
         return self
 
-    def split(self, fraction_list: List[float],
-              count_func: Callable[[str], float] = lambda x: 1):
+    def split(self, fraction_list: List[float], count_func: Callable[[str], float] = lambda x: 1):
         """
         Splits the dataset as each part specified by the fractions (assumed to sum up to 1).
         Splitting is done by finding the cutting points. If randomization is needed, call shuffle first.
@@ -122,8 +124,8 @@ class Stream:
         last_i = 0
         for i, cum_count in enumerate(cum_count_list):
             if cum_count >= cum_expected_count_list[len(cut_index_list)]:
-                last_i = i+1
-                cut_index_list.append(i+1)
+                last_i = i + 1
+                cut_index_list.append(i + 1)
                 if len(cut_index_list) >= len(cum_expected_count_list):
                     break
                 # end if
@@ -131,8 +133,10 @@ class Stream:
         if last_i != len(cum_count_list):
             cut_index_list.append(len(cum_count_list))
         # end if
-        cut_index_list.insert(0,0)
-        return tuple(Stream.of(self.items[cut_index_list[i]:cut_index_list[i + 1]]) for i in range(len(cut_index_list) - 1))
+        cut_index_list.insert(0, 0)
+        return tuple(
+            Stream.of(self.items[cut_index_list[i] : cut_index_list[i + 1]]) for i in range(len(cut_index_list) - 1)
+        )
 
     def shuffle(self, seed=None):
         """
@@ -174,6 +178,6 @@ class Stream:
 
     def __add__(self, other):
         if isinstance(other, Stream):
-            return Stream.of(self.items+other.items)
+            return Stream.of(self.items + other.items)
         else:
             raise NotImplementedError

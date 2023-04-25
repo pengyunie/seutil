@@ -15,7 +15,6 @@ from .BashUtils import BashUtils
 
 
 class GitHubUtils:
-
     logger = LoggingUtils.get_logger("GitHubUtils", LoggingUtils.DEBUG)
 
     GITHUB_SEARCH_ITEMS_MAX = 1000
@@ -25,7 +24,9 @@ class GitHubUtils:
     except:
         DEFAULT_ACCESS_TOKEN = None
         DEFAULT_GITHUB_OBJECT = None
-        logger.info("Fail to get github_access_token from config file.  Using GitHubUtils APIs will require compulsory input access_token")
+        logger.info(
+            "Fail to get github_access_token from config file.  Using GitHubUtils APIs will require compulsory input access_token"
+        )
     # end try
 
     @classmethod
@@ -40,6 +41,7 @@ class GitHubUtils:
         Wait for rate limit of the github accessor. For use with "with".
         Use the default github accessor if no argument is given.
         """
+
         DEFAULT_GITHUB_OBJECT = None
         logger = None
 
@@ -59,7 +61,11 @@ class GitHubUtils:
                 rate_limit_reset_time = datetime.fromtimestamp(self.github.rate_limiting_resettime)
                 rate_limit_wait_seconds = math.ceil((rate_limit_reset_time - datetime.now()).total_seconds()) + 1
                 if rate_limit_wait_seconds > 0:
-                    self.logger.warning("Rate limit will recover at: {}, will wait for {} seconds.".format(rate_limit_reset_time, rate_limit_wait_seconds))
+                    self.logger.warning(
+                        "Rate limit will recover at: {}, will wait for {} seconds.".format(
+                            rate_limit_reset_time, rate_limit_wait_seconds
+                        )
+                    )
                     sleep(rate_limit_wait_seconds)
                     self.logger.warning("Rate limit recovered")
                 # end if
@@ -74,8 +80,11 @@ class GitHubUtils:
     wait_rate_limit.logger = logger
 
     T = TypeVar("T")
+
     @classmethod
-    def ensure_github_api_call(cls, call: Callable[[Github], T], github: Github = DEFAULT_GITHUB_OBJECT, max_retry_times: int = float("inf")) -> T:
+    def ensure_github_api_call(
+        cls, call: Callable[[Github], T], github: Github = DEFAULT_GITHUB_OBJECT, max_retry_times: int = float("inf")
+    ) -> T:
         retry_times = 0
         while True:
             try:
@@ -101,12 +110,18 @@ class GitHubUtils:
         # end while
 
     @classmethod
-    def search_repos(cls, q: str = "", sort: str = "stars", order: str = "desc",
-                     is_allow_fork: bool = False,
-                     max_num_repos: int = GITHUB_SEARCH_ITEMS_MAX,
-                     github: Github = DEFAULT_GITHUB_OBJECT,
-                     max_retry_times: int = float("inf"),
-                     *_, **qualifiers) -> List[Repository]:
+    def search_repos(
+        cls,
+        q: str = "",
+        sort: str = "stars",
+        order: str = "desc",
+        is_allow_fork: bool = False,
+        max_num_repos: int = GITHUB_SEARCH_ITEMS_MAX,
+        github: Github = DEFAULT_GITHUB_OBJECT,
+        max_retry_times: int = float("inf"),
+        *_,
+        **qualifiers,
+    ) -> List[Repository]:
         """
         Searches the repos by querying GitHub API v3.
         :return: a list of full names of the repos match the query.
@@ -150,11 +165,17 @@ class GitHubUtils:
         return repos
 
     @classmethod
-    def search_users(cls, q: str = "", sort: str = "repositories", order: str = "desc",
-                     max_num_users: int = GITHUB_SEARCH_ITEMS_MAX,
-                     github: Github = DEFAULT_GITHUB_OBJECT,
-                     max_retry_times: int = float("inf"),
-                     *_, **qualifiers) -> List[NamedUser]:
+    def search_users(
+        cls,
+        q: str = "",
+        sort: str = "repositories",
+        order: str = "desc",
+        max_num_users: int = GITHUB_SEARCH_ITEMS_MAX,
+        github: Github = DEFAULT_GITHUB_OBJECT,
+        max_retry_times: int = float("inf"),
+        *_,
+        **qualifiers,
+    ) -> List[NamedUser]:
         """
         Searches the users by querying GitHub API v3.
         :return: a list of usernames (login) of the users match the query.
@@ -192,10 +213,14 @@ class GitHubUtils:
         return users
 
     @classmethod
-    def search_repos_of_language(cls, language: str, max_num_repos: int = float("inf"),
-                                 is_allow_fork: bool = False,
-                                 max_retry_times: int = float("inf"),
-                                 strategies: List[str] = None) -> List[Repository]:
+    def search_repos_of_language(
+        cls,
+        language: str,
+        max_num_repos: int = float("inf"),
+        is_allow_fork: bool = False,
+        max_retry_times: int = float("inf"),
+        strategies: List[str] = None,
+    ) -> List[Repository]:
         """
         Searches for all the repos of the language.
         :return: a list of full names of matching repos.
@@ -217,7 +242,12 @@ class GitHubUtils:
             strategy = "search_repos"
             if strategy in strategies:
                 cls.logger.info("Using strategy {}".format(strategy))
-                new_repos = cls.search_repos("language:{}".format(language), is_allow_fork=is_allow_fork, max_retry_times=max_retry_times, max_num_repos=max_num_repos)
+                new_repos = cls.search_repos(
+                    "language:{}".format(language),
+                    is_allow_fork=is_allow_fork,
+                    max_retry_times=max_retry_times,
+                    max_num_repos=max_num_repos,
+                )
                 for repo in new_repos:
                     names_repos[repo.full_name] = repo
                 # end for
@@ -233,13 +263,24 @@ class GitHubUtils:
                 cls.logger.info("Using strategy {}".format(strategy))
                 s_users = set()
                 # s_users = s_users.union([u.login for u in cls.search_users("language:{}".format(language), sort="repositories", max_retry_times=max_retry_times)])
-                s_users = s_users.union([u.login for u in cls.search_users("language:{}".format(language), sort="followers", max_retry_times=max_retry_times)])
+                s_users = s_users.union(
+                    [
+                        u.login
+                        for u in cls.search_users(
+                            "language:{}".format(language), sort="followers", max_retry_times=max_retry_times
+                        )
+                    ]
+                )
                 # s_users = s_users.union([u.login for u in cls.search_users("language:{}".format(language), sort="joined", max_retry_times=max_retry_times)])
                 users_count = 0
                 total_users_count = len(s_users)
                 for user in s_users:
                     try:
-                        new_repos = cls.search_repos("language:{} user:{}".format(language, user), is_allow_fork=is_allow_fork, max_retry_times=max_retry_times)
+                        new_repos = cls.search_repos(
+                            "language:{} user:{}".format(language, user),
+                            is_allow_fork=is_allow_fork,
+                            max_retry_times=max_retry_times,
+                        )
                     except GithubException as e:
                         cls.logger.warning("Cannot get the repos of user {}".format(user))
                         continue
@@ -248,7 +289,11 @@ class GitHubUtils:
                         names_repos[repo.full_name] = repo
                     # end for
                     users_count += 1
-                    cls.logger.debug("Progress {}/{} repos, {}/{} users.".format(len(names_repos), max_num_repos, users_count, total_users_count))
+                    cls.logger.debug(
+                        "Progress {}/{} repos, {}/{} users.".format(
+                            len(names_repos), max_num_repos, users_count, total_users_count
+                        )
+                    )
                     if len(names_repos) >= max_num_repos:
                         return list(names_repos.values())
                     # end if

@@ -12,7 +12,6 @@ from .TestSupport import TestSupport
 
 
 class test_IOUtils(unittest.TestCase):
-
     def load_plain(self, path: Path) -> str:
         """
         Loads a file's content in plain text using standard library only. Utility method.
@@ -83,17 +82,28 @@ class test_IOUtils(unittest.TestCase):
         nested_rc: "test_IOUtils.ExampleSimpleRecordClass" = None
 
     def test_jsonfy_record_class(self):
-        example_obj = test_IOUtils.ExampleRecordClass(field_str="aaa", field_int=42, field_list=[1,2], nested_rc=test_IOUtils.ExampleSimpleRecordClass())
+        example_obj = test_IOUtils.ExampleRecordClass(
+            field_str="aaa", field_int=42, field_list=[1, 2], nested_rc=test_IOUtils.ExampleSimpleRecordClass()
+        )
         jsonfied = IOUtils.jsonfy(example_obj)
         self.assertTrue(jsonfied.get("field_str") == "aaa")
         self.assertTrue(jsonfied.get("field_int") == 42)
-        self.assertTrue(jsonfied.get("field_list") == [1,2])
+        self.assertTrue(jsonfied.get("field_list") == [1, 2])
         self.assertTrue(jsonfied.get("nested_rc").get("f") == 1)
         return
 
     def test_dejsonfy_record_class(self):
-        example_obj = test_IOUtils.ExampleRecordClass(field_str="aaa", field_int=42, field_int_2=66, field_list=[1,2], nested_rc=test_IOUtils.ExampleSimpleRecordClass(f=225))
-        dejsonfied = IOUtils.dejsonfy({"field_str": "aaa", "field_int": 42, "field_int_2": "66", "field_list": [1, 2], "nested_rc": {"f": 225}}, test_IOUtils.ExampleRecordClass)
+        example_obj = test_IOUtils.ExampleRecordClass(
+            field_str="aaa",
+            field_int=42,
+            field_int_2=66,
+            field_list=[1, 2],
+            nested_rc=test_IOUtils.ExampleSimpleRecordClass(f=225),
+        )
+        dejsonfied = IOUtils.dejsonfy(
+            {"field_str": "aaa", "field_int": 42, "field_int_2": "66", "field_list": [1, 2], "nested_rc": {"f": 225}},
+            test_IOUtils.ExampleRecordClass,
+        )
         self.assertEqual(example_obj, dejsonfied)
         return
 
@@ -134,7 +144,7 @@ class test_IOUtils(unittest.TestCase):
 
         # Test append
         IOUtils.dump(path, obj, IOUtils.Format.jsonList, append=True)
-        self.assertEqual(expected*2, self.load_plain(path))
+        self.assertEqual(expected * 2, self.load_plain(path))
 
         self.rm(path)
 
@@ -156,7 +166,7 @@ class test_IOUtils(unittest.TestCase):
 
         # Test append
         IOUtils.dump(path, obj, IOUtils.Format.txtList, append=True)
-        self.assertEqual(expected*2, self.load_plain(path))
+        self.assertEqual(expected * 2, self.load_plain(path))
 
         self.rm(path)
 
@@ -191,5 +201,5 @@ class test_IOUtils(unittest.TestCase):
             self.rm(path)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

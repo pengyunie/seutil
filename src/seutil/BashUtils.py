@@ -9,6 +9,7 @@ class BashUtils:
     """
     Utility functions for running Bash commands.
     """
+
     PRINT_LIMIT = 1000
 
     class RunResult(NamedTuple):
@@ -17,10 +18,12 @@ class BashUtils:
         stderr: str
 
     @classmethod
-    def run(cls, cmd: str,
-            expected_return_code: int = None,
-            is_update_env: bool = False,
-            timeout: Optional[float] = None,
+    def run(
+        cls,
+        cmd: str,
+        expected_return_code: int = None,
+        is_update_env: bool = False,
+        timeout: Optional[float] = None,
     ) -> RunResult:
         """
         Runs a Bash command and returns the stdout.
@@ -36,8 +39,10 @@ class BashUtils:
             cmd += f" && env > {tempfile_update_env}"
         # end if
 
-        completed_process = subprocess.run(["bash", "-c", cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
-        #completed_process = subprocess.run(cmd, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        completed_process = subprocess.run(
+            ["bash", "-c", cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout
+        )
+        # completed_process = subprocess.run(cmd, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         return_code = completed_process.returncode
         stdout = completed_process.stdout.decode("utf-8", errors="ignore")
@@ -57,20 +62,30 @@ class BashUtils:
         if expected_return_code is not None:
             if return_code != expected_return_code:
                 if len(stdout) > cls.PRINT_LIMIT:
-                    tempfile_stdout = subprocess.run(["bash", "-c", "mktemp"], stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout.decode("utf-8", errors="ignore").strip()
+                    tempfile_stdout = (
+                        subprocess.run(["bash", "-c", "mktemp"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        .stdout.decode("utf-8", errors="ignore")
+                        .strip()
+                    )
                     with open(tempfile_stdout, "w") as f:
                         f.write(stdout)
                     # end with
                     stdout = f"{stdout[:cls.PRINT_LIMIT]} //////////TOO LONG; dumped to {tempfile_stdout}//////////"
                 # end if
                 if len(stderr) > cls.PRINT_LIMIT:
-                    tempfile_stderr = subprocess.run(["bash", "-c", "mktemp"], stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout.decode("utf-8", errors="ignore").strip()
+                    tempfile_stderr = (
+                        subprocess.run(["bash", "-c", "mktemp"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        .stdout.decode("utf-8", errors="ignore")
+                        .strip()
+                    )
                     with open(tempfile_stderr, "w") as f:
                         f.write(stderr)
                     # end with
                     stderr = f"{stderr[:cls.PRINT_LIMIT]} //////////TOO LONG; dumped to {tempfile_stderr}//////////"
                 # end if
-                raise RuntimeError(f"Expected {expected_return_code} but returned {return_code} while executing bash command '{cmd}'.\nstdout: {stdout}\nstderr: {stderr}")
+                raise RuntimeError(
+                    f"Expected {expected_return_code} but returned {return_code} while executing bash command '{cmd}'.\nstdout: {stdout}\nstderr: {stderr}"
+                )
         # end if, if
 
         return cls.RunResult(return_code, stdout, stderr)

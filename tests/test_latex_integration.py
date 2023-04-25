@@ -120,8 +120,7 @@ class Test_latex_integration:
     def gen_numbers(self, path: Path):
         f = su.latex.File()
         for subset, subset_fn in [("all", lambda df: df)] + [
-            (sn, lambda df, sn=sn: df[df["sn"] == sn])
-            for sn in ["train", "val", "test"]
+            (sn, lambda df, sn=sn: df[df["sn"] == sn]) for sn in ["train", "val", "test"]
         ]:
             df_subset: self.pd.DataFrame = subset_fn(self.df_method)
             f.append(
@@ -130,9 +129,7 @@ class Test_latex_integration:
                     f"{len(df_subset['proj_name'].unique()):,d}",
                 )
             )
-            f.append(
-                su.latex.Macro(f"corpus-{subset}-num_test", f"{len(df_subset):,d}")
-            )
+            f.append(su.latex.Macro(f"corpus-{subset}-num_test", f"{len(df_subset):,d}"))
             f.append(
                 su.latex.Macro(
                     f"corpus-{subset}-tok_mut",
@@ -222,8 +219,7 @@ class Test_latex_integration_old:
     def gen_numbers(self, path: Path):
         f = su.latex.File(path / "numbers.tex")
         for subset, subset_fn in [("all", lambda df: df)] + [
-            (sn, lambda df, sn=sn: df[df["sn"] == sn])
-            for sn in ["train", "val", "test"]
+            (sn, lambda df, sn=sn: df[df["sn"] == sn]) for sn in ["train", "val", "test"]
         ]:
             df_subset: self.pd.DataFrame = subset_fn(self.df_method)
             f.append_macro(
@@ -232,9 +228,7 @@ class Test_latex_integration_old:
                     f"{len(df_subset['proj_name'].unique()):,d}",
                 )
             )
-            f.append_macro(
-                su.latex.Macro(f"corpus-{subset}-num_test", f"{len(df_subset):,d}")
-            )
+            f.append_macro(su.latex.Macro(f"corpus-{subset}-num_test", f"{len(df_subset):,d}"))
             f.append_macro(
                 su.latex.Macro(
                     f"corpus-{subset}-tok_mut",

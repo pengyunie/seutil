@@ -16,15 +16,15 @@ import yaml
 
 
 def is_obj_record_class(obj: Any) -> bool:
-    return obj is not None \
-           and isinstance(obj, recordclass.mutabletuple) or isinstance(obj, recordclass.dataobject)
+    return obj is not None and isinstance(obj, recordclass.mutabletuple) or isinstance(obj, recordclass.dataobject)
 
 
 def is_clz_record_class(clz: Type) -> bool:
-    return clz is not None \
-           and inspect.isclass(clz) \
-           and (issubclass(clz, recordclass.mutabletuple) or issubclass(clz, recordclass.dataobject))
-
+    return (
+        clz is not None
+        and inspect.isclass(clz)
+        and (issubclass(clz, recordclass.mutabletuple) or issubclass(clz, recordclass.dataobject))
+    )
 
 
 class IOUtils:
@@ -72,9 +72,7 @@ class IOUtils:
     # Deprecated
     # Use pathlib.Path.mkdir() instead
     @classmethod
-    def mk_dir(cls, dirname, mode=0o777,
-               is_remove_if_exists: bool = False,
-               is_make_parent: bool = True):
+    def mk_dir(cls, dirname, mode=0o777, is_remove_if_exists: bool = False, is_make_parent: bool = True):
         """
         Makes the directory.
         :param dirname: the name of the directory.
@@ -101,10 +99,10 @@ class IOUtils:
 
     @classmethod
     def rm_dir(
-            cls,
-            path: Path,
-            ignore_non_exist: bool = True,
-            force: bool = True,
+        cls,
+        path: Path,
+        ignore_non_exist: bool = True,
+        force: bool = True,
     ):
         """
         Removes the directory.
@@ -129,10 +127,10 @@ class IOUtils:
 
     @classmethod
     def rm(
-            cls,
-            path: Path,
-            ignore_non_exist: bool = True,
-            force: bool = True,
+        cls,
+        path: Path,
+        ignore_non_exist: bool = True,
+        force: bool = True,
     ):
         """
         Removes the file/dir.
@@ -153,14 +151,14 @@ class IOUtils:
     # File operations
 
     class Format(Enum):
-        txt = 0,  # Plain text format
-        pkl = 1,  # Pickle format
-        jsonPretty = 2,  # Json format, with pretty-printing
-        jsonNoSort = 3,  # Json format, with pretty-printing, without sorting the keys in dictionary
-        json = 4,  # Json format, without pretty-printing (eveything on one line)
-        jsonList = 5,  # Json format, assuming a list structure and put each item on one line
-        txtList = 6,  # Plain text format, dump/load as a list where each line is an element
-        yaml = 7,  # YAML format
+        txt = (0,)  # Plain text format
+        pkl = (1,)  # Pickle format
+        jsonPretty = (2,)  # Json format, with pretty-printing
+        jsonNoSort = (3,)  # Json format, with pretty-printing, without sorting the keys in dictionary
+        json = (4,)  # Json format, without pretty-printing (eveything on one line)
+        jsonList = (5,)  # Json format, assuming a list structure and put each item on one line
+        txtList = (6,)  # Plain text format, dump/load as a list where each line is an element
+        yaml = (7,)  # YAML format
 
         @classmethod
         def from_str(cls, string: str) -> "IOUtils.Format":
@@ -185,21 +183,23 @@ class IOUtils:
                 IOUtils.Format.yaml: "yml",
             }.get(self, "unknown")
 
-    IO_FORMATS: Dict[Format, Dict] = defaultdict(lambda: {
-        "mode": "t",
-        "dumpf": (lambda obj, f: f.write(obj)),
-        "loadf": (lambda f: f.read())
-    })
+    IO_FORMATS: Dict[Format, Dict] = defaultdict(
+        lambda: {"mode": "t", "dumpf": (lambda obj, f: f.write(obj)), "loadf": (lambda f: f.read())}
+    )
 
     IO_FORMATS[Format.pkl]["mode"] = "b"
     IO_FORMATS[Format.pkl]["dumpf"] = lambda obj, f: pkl.dump(obj, f, protocol=pkl.HIGHEST_PROTOCOL)
     IO_FORMATS[Format.pkl]["loadf"] = lambda f: pkl.load(f)
 
     IO_FORMATS[Format.jsonPretty]["dumpf"] = lambda obj, f: json.dump(obj, f, indent=4, sort_keys=True)
-    IO_FORMATS[Format.jsonPretty]["loadf"] = lambda f: yaml.load(f, Loader=yaml.FullLoader)  # allows some format errors (e.g., trailing commas)
+    IO_FORMATS[Format.jsonPretty]["loadf"] = lambda f: yaml.load(
+        f, Loader=yaml.FullLoader
+    )  # allows some format errors (e.g., trailing commas)
 
     IO_FORMATS[Format.jsonNoSort]["dumpf"] = lambda obj, f: json.dump(obj, f, indent=4)
-    IO_FORMATS[Format.jsonNoSort]["loadf"] = lambda f: yaml.load(f, Loader=yaml.FullLoader)  # allows some format errors (e.g., trailing commas)
+    IO_FORMATS[Format.jsonNoSort]["loadf"] = lambda f: yaml.load(
+        f, Loader=yaml.FullLoader
+    )  # allows some format errors (e.g., trailing commas)
 
     IO_FORMATS[Format.json]["dumpf"] = lambda obj, f: json.dump(obj, f, sort_keys=True)
     IO_FORMATS[Format.json]["loadf"] = lambda f: json.load(f)
@@ -236,11 +236,11 @@ class IOUtils:
 
     @classmethod
     def dump(
-            cls,
-            file_path: Union[str, Path],
-            obj: object,
-            fmt: Union[Format, str] = Format.jsonPretty,
-            append: bool = False,
+        cls,
+        file_path: Union[str, Path],
+        obj: object,
+        fmt: Union[Format, str] = Format.jsonPretty,
+        append: bool = False,
     ) -> None:
         """
         Saves an object to the file in the specified format.
@@ -255,7 +255,8 @@ class IOUtils:
 
         file_path.touch(exist_ok=True)
 
-        if isinstance(fmt, str):  fmt = cls.Format.from_str(fmt)
+        if isinstance(fmt, str):
+            fmt = cls.Format.from_str(fmt)
         conf = cls.IO_FORMATS[fmt]
 
         write_mode = "w" if not append else "a"
@@ -270,7 +271,8 @@ class IOUtils:
             file_path = Path(file_path)
         # end if
 
-        if isinstance(fmt, str):  fmt = cls.Format.from_str(fmt)
+        if isinstance(fmt, str):
+            fmt = cls.Format.from_str(fmt)
         conf = cls.IO_FORMATS[fmt]
 
         try:
@@ -289,11 +291,13 @@ class IOUtils:
         Reads large json file containing a list of data iteratively. Returns a generator function.
         """
         import ijson
+
         if isinstance(file_path, str):
             file_path = Path(file_path)
         # end if
 
-        if isinstance(fmt, str):  fmt = cls.Format.from_str(fmt)
+        if isinstance(fmt, str):
+            fmt = cls.Format.from_str(fmt)
         conf = cls.IO_FORMATS[fmt]
 
         try:
@@ -404,7 +408,9 @@ class IOUtils:
             return [cls.dejsonfy(item, clz.__args__[0]) for item in data]
         elif clz is not None and typing_inspect.get_origin(clz) == tuple:
             # Tuple[XXX]
-            return tuple([cls.dejsonfy(item, clz.__args__[min(i, len(clz.__args__)-1)]) for i, item in enumerate(data)])
+            return tuple(
+                [cls.dejsonfy(item, clz.__args__[min(i, len(clz.__args__) - 1)]) for i, item in enumerate(data)]
+            )
         elif clz is not None and typing_inspect.get_origin(clz) == set:
             # Set[XXX]
             return set([cls.dejsonfy(item, clz.__args__[0]) for item in data])

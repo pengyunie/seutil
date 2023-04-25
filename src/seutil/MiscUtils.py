@@ -45,8 +45,8 @@ def iter_len(iterator: Iterable) -> int:
 
 # Human-readable numbers
 
-POWERS = [10 ** x for x in (3, 6, 9, 12, 15, 18, 21, 24)]
-HUMAN_READABLE_POWERS = ('K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp')
+POWERS = [10**x for x in (3, 6, 9, 12, 15, 18, 21, 24)]
+HUMAN_READABLE_POWERS = ("K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp")
 
 
 def itos_human_readable(value: int, precision: int = 1) -> str:
@@ -78,13 +78,13 @@ def itos_human_readable(value: int, precision: int = 1) -> str:
 def chunks(l, n):
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(l), n):
-        yield l[i:i + n]
+        yield l[i : i + n]
 
 
 # Class Property
 
-class ClassPropertyDescriptor(object):
 
+class ClassPropertyDescriptor(object):
     def __init__(self, fget, fset=None):
         self.fget = fget
         self.fset = fset
@@ -105,6 +105,7 @@ class ClassPropertyDescriptor(object):
             func = classmethod(func)
         self.fset = func
         return self
+
 
 def classproperty(func):
     if not isinstance(func, (classmethod, staticmethod)):

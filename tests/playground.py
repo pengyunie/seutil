@@ -21,8 +21,7 @@ def test_dataclass():
     print(f"{Entry(**dataclasses.asdict(entry))=}")
 
 
-class RandomClass():
-
+class RandomClass:
     @classmethod
     def deserialize(cls, data):
         return cls()
@@ -36,6 +35,7 @@ def test_io():
 
 def test_pbar():
     import time
+
     # from tqdm import tqdm
     from seutil.pbar import tqdm
 
