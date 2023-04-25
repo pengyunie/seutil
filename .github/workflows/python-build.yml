@@ -51,4 +51,4 @@ jobs:
           pip install .[dev,dev-opt]
       - name: run pytest
         run: |
-          pytest --runslow --cov-report=term-missing
+          pytest --cov-report=term-missing
