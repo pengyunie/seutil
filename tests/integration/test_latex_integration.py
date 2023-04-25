@@ -5,7 +5,7 @@ import pytest
 import seutil as su
 
 resources_dir = Path(__file__).parent.parent / "resources"
-out_dir = Path(__file__).parent / "out"
+out_dir = Path(__file__).parent.parent / "out"
 
 
 main_tex_prefix = r"""

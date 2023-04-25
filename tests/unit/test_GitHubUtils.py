@@ -3,7 +3,6 @@ import unittest
 from github.GithubException import GithubException
 
 from seutil import GitHubUtils
-from .TestSupport import TestSupport
 
 
 class test_GitHubUtils(unittest.TestCase):

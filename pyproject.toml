@@ -60,8 +60,8 @@ tests = ["tests", "*/seutil/tests"]
 exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
 
 [tool.pytest.ini_options]
-addopts = "--ignore=deprecated --cov --cov-report xml:cov.xml -k 'not integration'"
-testpaths = ["tests"]
+addopts = "--ignore=deprecated --cov --cov-report xml:cov.xml"
+testpaths = ["tests/unit"]
 
 # formatting (black)
 [tool.black]
