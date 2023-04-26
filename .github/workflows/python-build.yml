@@ -47,7 +47,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-${{ matrix.python }}-buildx-${{ hashFiles('Dockerfile', 'pyproject.toml') }}
+          key: ${{ runner.os }}-buildx-${{ hashFiles('Dockerfile') }}
       - name: build docker image
         uses: docker/build-push-action@v4
         with:
@@ -59,7 +59,9 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
       - name: start docker container
-        run: docker run -d --name python-build python-build:latest
+        run: docker run -v "$(pwd):/app" --name python-build python-build:latest
+      - name: install dependencies
+        run: ./prepare-env.sh ${{ matrix.python }}
       - name: run pytest (unit tests)
         run: |
           pytest tests/unit --cov-report=term-missing --cov-append
