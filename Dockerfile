@@ -1,7 +1,7 @@
 FROM texlive/texlive:TL2022-historic
 ARG PYTHON_VERSION
 
-RUN sudo apt-get update && sudo apt-get install wget
+RUN apt-get update && apt-get install wget
 
 # install miniconda
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh && \
