@@ -4,7 +4,6 @@
 _DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 DEFAULT_CONDA_PATH="$HOME/opt/anaconda3/etc/profile.d/conda.sh"
-PYTHON_VERSION=3.8
 
 
 function get_conda_path() {
@@ -19,19 +18,22 @@ function get_conda_path() {
 
 
 function prepare_conda_env() {
+        # the python version to use
+        local python_version=${1:-3.8}; shift
         # the conda env name
         local env_name=${1:-seutil}; shift
         # path to conda.sh script; automatically inferred from conda executable path if not provided
         local conda_path=${1:-$(get_conda_path)}; shift
 
-        echo ">>> Preparing conda environment \"${env_name}\", for conda at ${conda_path}"
+        echo ">>> Preparing conda environment \"${env_name}\", python_version=${python_version}, conda=${conda_path}"
         
         # Preparation
         set -e
         source ${conda_path}
         conda env remove --name $env_name
-        conda create --name $env_name python=$PYTHON_VERSION pip -y
+        conda create --name $env_name python=$python_version pip -y
         conda activate $env_name
+        pip install --upgrade pip
 
         # Install libraries
         pip install torch --index-url https://download.pytorch.org/whl/cpu  # prioritize the use of cpu version of pytorch
