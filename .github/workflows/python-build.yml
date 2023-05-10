@@ -58,13 +58,17 @@ jobs:
           tags: python-build:latest
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
-      - name: start docker container
-        run: docker run -v "$(pwd):/app" --name python-build python-build:latest
-      - name: install dependencies
-        run: ./prepare-env.sh ${{ matrix.python }}
-      - name: run pytest (unit tests)
-        run: |
-          pytest tests/unit --cov-report=term-missing --cov-append
-      - name: run pytest (integration tests)
-        run: |
-          pytest tests/integration --cov-report=term-missing --cov-append
+          push: false
+      - name: run tests in docker
+        uses: addnab/docker-run-action@v3
+        with:
+          image: python-build:latest
+          options: "$(pwd):/app"
+          shell: bash
+          run: |
+            # install dependencies
+            ./prepare-env.sh ${{ matrix.python }}
+            # run unit tests
+            pytest tests/unit --cov-report=term-missing --cov-append
+            # run integration tests
+            pytest tests/integration --cov-report=term-missing --cov-append
