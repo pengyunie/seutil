@@ -42,7 +42,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: install dependencies
-        run: ./prepare-conda.sh ${{ matrix.python }} seutil
+        run: ./prepare-env.sh ${{ matrix.python }} seutil
       - name: run unit tests
         run: pytest tests/unit --cov-report=term-missing --cov-append
       - name: setup env for integration tests - texlive
