@@ -41,34 +41,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
-      - uses: docker/setup-buildx-action@v2
-        id: buildx
-      - name: register docker cache
-        uses: actions/cache@v3
+      - name: install dependencies
+        run: ./prepare-conda.sh ${{ matrix.python }} seutil
+      - name: run unit tests
+        run: pytest tests/unit --cov-report=term-missing --cov-append
+      - name: setup env for integration tests - texlive
+        uses: teatimeguest/setup-texlive-action@v2.6.0
         with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ hashFiles('Dockerfile') }}
-      - name: build docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: ./
-          file: ./Dockerfile
-          builder: ${{ steps.buildx.outputs.name }}
-          load: true
-          tags: python-build:latest
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
-          push: false
-      - name: run tests in docker
-        uses: addnab/docker-run-action@v3
-        with:
-          image: python-build:latest
-          options: "$(pwd):/app"
-          shell: bash
-          run: |
-            # install dependencies
-            ./prepare-env.sh ${{ matrix.python }}
-            # run unit tests
-            pytest tests/unit --cov-report=term-missing --cov-append
-            # run integration tests
-            pytest tests/integration --cov-report=term-missing --cov-append
+          version: 2022
+          packages: scheme-full
+      - name: run integration tests
+        run: pytest tests/integration --cov-report=term-missing --cov-append
