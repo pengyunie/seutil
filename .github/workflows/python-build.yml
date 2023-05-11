@@ -42,13 +42,16 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: install dependencies
-        run: ./prepare-env.sh ${{ matrix.python }} seutil
+        run: |
+          ./prepare-env.sh ${{ matrix.python }} seutil
+          eval "$(conda shell.bash hook)"
+          conda activate seutil
       - name: run unit tests
-        run: conda activate seutil && pytest tests/unit --cov-report=term-missing --cov-append
+        run: pytest tests/unit --cov-report=term-missing --cov-append
       - name: setup env for integration tests - texlive
         uses: teatimeguest/setup-texlive-action@v2.6.0
         with:
           version: 2022
           packages: scheme-full
       - name: run integration tests
-        run: conda activate seutil && pytest tests/integration --cov-report=term-missing --cov-append
+        run: pytest tests/integration --cov-report=term-missing --cov-append
