@@ -6,9 +6,9 @@ from typing import List, Set
 
 import xmltodict
 
-import seutil as su
+from . import bash, io, log, project
 
-logger = su.log.get_logger(__name__, su.log.INFO)
+logger = log.get_logger(__name__, log.INFO)
 
 SKIPS = "-Djacoco.skip -Dcheckstyle.skip -Drat.skip -Denforcer.skip -Danimal.sniffer.skip -Dmaven.javadoc.skip -Dfindbugs.skip -Dwarbucks.skip -Dmodernizer.skip -Dimpsort.skip -Dpmd.skip -Dxjc.skip -Dair.check.skip-all"
 
@@ -50,23 +50,23 @@ class MavenModule:
 
     @functools.cached_property
     def dependency_classpath(self) -> str:
-        with su.io.cd(self.project.dir / self.rel_path):
-            tmp_file = su.io.mktmp(prefix="cp")
-            su.bash.run(f"mvn dependency:build-classpath -Dmdep.outputFile={tmp_file}", 0)
-            classpath = su.io.load(tmp_file, fmt=su.io.Fmt.txt)
-            su.io.rm(tmp_file)
+        with io.cd(self.project.dir / self.rel_path):
+            tmp_file = io.mktmp(prefix="cp")
+            bash.run(f"mvn dependency:build-classpath -Dmdep.outputFile={tmp_file}", 0)
+            classpath = io.load(tmp_file, fmt=io.fmts.txt)
+            io.rm(tmp_file)
             return classpath
 
     @functools.cached_property
     def exec_classpath(self) -> str:
-        with su.io.cd(self.project.dir / self.rel_path):
-            tmp_file = su.io.mktmp(prefix="ecp")
-            su.bash.run(
+        with io.cd(self.project.dir / self.rel_path):
+            tmp_file = io.mktmp(prefix="ecp")
+            bash.run(
                 f"mvn -q exec:exec -Dexec.executable=echo -Dexec.args='%classpath' > {tmp_file}",
                 0,
             )
-            classpath = su.io.load(tmp_file, fmt=su.io.Fmt.txt).strip()
-            su.io.rm(tmp_file)
+            classpath = io.load(tmp_file, fmt=io.fmts.txt).strip()
+            io.rm(tmp_file)
             return classpath
 
     @functools.cached_property
@@ -76,12 +76,12 @@ class MavenModule:
     def backup_pom(self):
         if len(self.pom_modified) > 0:
             raise RuntimeError(f"Cannot backup pom.xml for {self.coordinate} because it has been modified")
-        with su.io.cd(self.project.dir / self.rel_path):
-            su.bash.run("cp pom.xml pom.xml.backup", 0)
+        with io.cd(self.project.dir / self.rel_path):
+            bash.run("cp pom.xml pom.xml.backup", 0)
 
     def restore_pom(self):
-        with su.io.cd(self.project.dir / self.rel_path):
-            su.bash.run("cp pom.xml.backup pom.xml", 0)
+        with io.cd(self.project.dir / self.rel_path):
+            bash.run("cp pom.xml.backup pom.xml", 0)
         self.pom_modified.clear()
 
     def hack_pom_delete_plugin(self, artifact_id: str):
@@ -91,7 +91,7 @@ class MavenModule:
             logger.debug(f"pom.xml for {self.coordinate} already did {modification}")
             return
 
-        pom = xmltodict.parse(su.io.load(self.project.dir / self.rel_path / "pom.xml", fmt=su.io.Fmt.txt))
+        pom = xmltodict.parse(io.load(self.project.dir / self.rel_path / "pom.xml", fmt=io.fmts.txt))
 
         plugins = pom.get("project", {}).get("build", {}).get("plugins", {}).get("plugin", [])
         if not isinstance(plugins, list):
@@ -106,22 +106,22 @@ class MavenModule:
         if to_remove is not None:
             del plugins[to_remove]
 
-        su.io.dump(
+        io.dump(
             self.project.dir / self.rel_path / "pom.xml",
             xmltodict.unparse(pom),
-            fmt=su.io.Fmt.txt,
+            fmt=io.fmts.txt,
         )
 
         self.pom_modified.add(modification)
 
     def compile(self, timeout=600, retry_with_package=True, clean=False):
-        with su.io.cd(self.dir / self.rel_path):
+        with io.cd(self.dir / self.rel_path):
             if clean:
-                su.bash.run("mvn clean", 0)
-            rr = su.bash.run(f"mvn test-compile {SKIPS}", timeout=timeout)
+                bash.run("mvn clean", 0)
+            rr = bash.run(f"mvn test-compile {SKIPS}", timeout=timeout)
             if rr.returncode != 0:
                 if retry_with_package:
-                    su.bash.run(f"mvn package -DskipTests {SKIPS}", 0, timeout=timeout)
+                    bash.run(f"mvn package -DskipTests {SKIPS}", 0, timeout=timeout)
                 else:
                     raise RuntimeError(f"Failed to compile")
 
@@ -139,18 +139,18 @@ class MavenProject:
     def serialize(self):
         return {
             "multi_module": self.multi_module,
-            "modules": su.io.serialize(self.modules),
+            "modules": io.serialize(self.modules),
         }
 
     @classmethod
-    def from_project(cls, project: su.project.Project) -> "MavenProject":
+    def from_project(cls, project: project.Project) -> "MavenProject":
         if not (project.dir / "pom.xml").exists():
             return None
         project.require_cloned()
         maven_proj = cls(dir=project.dir)
         # detect modules from the project
-        with su.io.cd(maven_proj.dir):
-            rr = su.bash.run(
+        with io.cd(maven_proj.dir):
+            rr = bash.run(
                 """mvn -Dexec.executable='bash' -Dexec.args='-c '"'"'echo ${project.groupId}:${project.artifactId}:${project.version} ${project.packaging} ${PWD}'"'"'' exec:exec -q""",
                 0,
             )
@@ -185,21 +185,21 @@ class MavenProject:
             module.hack_pom_delete_plugin(artifact_id)
 
     def compile(self, timeout=600, retry_with_package=True, clean=False):
-        with su.io.cd(self.dir):
+        with io.cd(self.dir):
             if clean:
-                su.bash.run("mvn clean", 0)
-            rr = su.bash.run(f"mvn test-compile {SKIPS}", timeout=timeout)
+                bash.run("mvn clean", 0)
+            rr = bash.run(f"mvn test-compile {SKIPS}", timeout=timeout)
             if rr.returncode != 0:
                 if retry_with_package:
-                    su.bash.run(f"mvn package -DskipTests {SKIPS}", 0, timeout=timeout)
+                    bash.run(f"mvn package -DskipTests {SKIPS}", 0, timeout=timeout)
                 else:
                     raise RuntimeError(f"Failed to compile")
 
     def install(self, timeout=600, clean=False):
-        with su.io.cd(self.dir):
+        with io.cd(self.dir):
             if clean:
-                su.bash.run("mvn clean", 0)
-            rr = su.bash.run(f"mvn install -DskipTests {SKIPS}", 0, timeout=timeout)
+                bash.run("mvn clean", 0)
+            rr = bash.run(f"mvn install -DskipTests {SKIPS}", 0, timeout=timeout)
             if rr.returncode != 0:
                 raise RuntimeError(f"Failed to install")
 

@@ -79,7 +79,7 @@ def test_clone_local_exists_remove(local_gitgame_repo: su.project.Project, tmp_p
     local_gitgame_repo.clone(tmp_path)
     assert (tmp_path / "pengyunie_git-game").exists()
     # touch a random file in the cloned directory, to test if it is later removed
-    su.io.dump(local_gitgame_repo.dir / "random.txt", "abc", su.io.Fmt.txt)
+    su.io.dump(local_gitgame_repo.dir / "random.txt", "abc", su.io.fmts.txt)
     assert (local_gitgame_repo.dir / "random.txt").exists()
 
     local_gitgame_repo.clone(tmp_path, exists="remove")
@@ -166,7 +166,7 @@ def test_checkout_forced(local_gitgame_repo: su.project.Project, tmp_path: Path)
     assert (tmp_path / "pengyunie_git-game").exists()
     assert local_gitgame_repo.get_cur_revision() == "d851edda3009332dd5d3f8f949a102f279dad809"
     # modify the README so that normal checkout should fail
-    su.io.dump(local_gitgame_repo.dir / "README.md", "modified", su.io.Fmt.txt)
+    su.io.dump(local_gitgame_repo.dir / "README.md", "modified", su.io.fmts.txt)
     with pytest.raises(su.bash.BashError):
         local_gitgame_repo.checkout("7c8c3ccc2f4bb118a657f1f7a7ab4e163d1b7a30")
 

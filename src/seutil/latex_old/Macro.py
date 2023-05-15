@@ -75,7 +75,7 @@ class Macro:
         """
         macros_indexed: Dict[str, Macro] = dict()
 
-        lines: List[str] = io.load(file, io.Fmt.txtList)
+        lines: List[str] = io.load(file, io.fmts.txtList)
         for line in lines:
             match = cls.RE_DEF_MACRO.fullmatch(line.strip())
             if match is not None:

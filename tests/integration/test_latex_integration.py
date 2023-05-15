@@ -107,7 +107,7 @@ class Test_latex_integration:
 \end{table}
 \end{document}
 """,
-            su.io.Fmt.txt,
+            su.io.fmts.txt,
         )
         with su.io.cd(tmp_path):
             su.bash.run("latexmk -pdf main.tex", 0)
@@ -206,7 +206,7 @@ class Test_latex_integration_old:
 \end{table}
 \end{document}
 """,
-            su.io.Fmt.txt,
+            su.io.fmts.txt,
         )
         with su.io.cd(tmp_path):
             su.bash.run("latexmk -pdf main.tex", 0)

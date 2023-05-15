@@ -128,7 +128,7 @@ def run(
 
     # potentially update the environment variables
     if update_env:
-        envs = io.load(tempfile_update_env, io.Fmt.txtList)
+        envs = io.load(tempfile_update_env, io.fmts.txtList)
         if update_env_clear_existing:
             os.environ.clear()
         for env in envs:

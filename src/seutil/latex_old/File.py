@@ -22,7 +22,7 @@ class File:
         self.old_content: str = ""
         if self.is_append:
             if path.is_file():
-                self.old_content = io.load(path, io.Fmt.txt)
+                self.old_content = io.load(path, io.fmts.txt)
 
         # Contents
         self.items: List[Union[str, Macro, Table]] = list()
@@ -49,7 +49,7 @@ class File:
 
     def save(self) -> None:
         content = self.old_content + "\n" + self.eval_content()
-        io.dump(self.path, content, io.Fmt.txt)
+        io.dump(self.path, content, io.fmts.txt)
         return
 
     def eval_content(self) -> str:
