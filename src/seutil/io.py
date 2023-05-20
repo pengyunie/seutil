@@ -2,6 +2,7 @@ import bz2
 import collections
 import csv
 import dataclasses
+import enum
 import gzip
 import inspect
 import io
@@ -15,9 +16,20 @@ import tempfile
 import warnings
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Type, TypeVar, Union, get_type_hints
+from typing import (
+    Any,
+    Callable,
+    Iterator,
+    List,
+    Optional,
+    OrderedDict,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    get_type_hints,
+)
 
-import recordclass
 import typing_inspect
 import yaml
 
@@ -54,18 +66,6 @@ def _unify_path(path: Union[str, Path]) -> Path:
     if not isinstance(path, Path):
         path = Path(path)
     return path
-
-
-def _is_obj_record_class(obj: Any) -> bool:
-    return obj is not None and isinstance(obj, recordclass.mutabletuple) or isinstance(obj, recordclass.dataobject)
-
-
-def _is_clz_record_class(clz: Type) -> bool:
-    return (
-        clz is not None
-        and inspect.isclass(clz)
-        and (issubclass(clz, recordclass.mutabletuple) or issubclass(clz, recordclass.dataobject))
-    )
 
 
 def _is_obj_named_tuple(obj: Any) -> bool:
@@ -218,70 +218,164 @@ def mktmp_dir(
 TObj = TypeVar("TObj")
 # data after serialization, usually contain only primitive types and simple list and dict structures, that can be directly stored to disk
 TData = TypeVar("TData")
+# the target of deserialization, either a type or a type hint
+TType = TypeVar("TType")
+# the serializer callable: f(obj) -> data
+TSerializer = Callable[[TObj], TData]
+# the deserializer callable: f(data) -> obj OR f(data, type) -> obj
+TDeserializer = Union[Callable[[TData], TObj], Callable[[TData, TType], TObj]]
 
 
 _NON_TYPE = type(None)
 
 
-_SERIALIZERS: Dict[type, Callable[[TObj], TData]] = {}
-_DESERIALIZERS: Dict[type, Callable[[TData], TObj]] = {}
+class isobj_predefined(enum.Enum):
+    type_eq = enum.auto()
+    isinstance = enum.auto()
 
 
-def register_type(
+class isclz_predefined(enum.Enum):
+    eq = enum.auto()
+    issubclass = enum.auto()
+
+
+@dataclasses.dataclass(frozen=True)
+class TypeAdapter:
+    isobj: Callable[[Any], bool]
+    isclz: Callable[[Type], bool]
+    serializer: Optional[TSerializer] = None
+    deserializer: Optional[TDeserializer] = None
+    deserializer_2args: bool = dataclasses.field(default=False, init=False)
+
+    def __post_init__(self):
+        if self.deserializer is not None and inspect.isfunction(self.deserializer):
+            deserializer_sign = inspect.signature(self.deserializer)
+            object.__setattr__(self, "deserializer_2args", len(deserializer_sign.parameters) >= 2)
+
+    @classmethod
+    def for_clz(
+        cls,
+        clz: Type,
+        isobj: Union[isobj_predefined, Callable[[Any], bool]] = isobj_predefined.isinstance,
+        isclz: Union[isclz_predefined, Callable[[Type], bool]] = isclz_predefined.issubclass,
+        serializer: Optional[TSerializer] = None,
+        deserializer: Optional[TDeserializer] = None,
+    ) -> "TypeAdapter":
+        """
+        Creates a type adapter for a type with predefined isobj and isclz checkers.
+        :param clz: the type to adapt.
+        :param isobj: the isobj checker, can use one of isobj_predefined:
+            * type_eq: check if the object strictly matches the given type.
+            * isinstance (default): check if the object is an instance of the given type.
+            Or, can use a custom checker, which takes an object and returns a bool.
+        :param isclz: the isclz checker, can use one of isclz_predefined:
+            * eq: check if the type strictly matches the given type.
+            * issubclass (default): check if the type is a subclass of the given type.
+            Or, can use a custom checker, which takes a type and returns a bool.
+        :param serializer: the serializer, can be None if only registering a deserializer.
+        :param deserializer: the deserializer, can be None if only registering a serializer.
+        :return: the type adapter.
+        """
+        if isinstance(isobj, isobj_predefined):
+            if isobj == isobj_predefined.type_eq:
+
+                def isobj(x):
+                    return type(x) == clz
+
+            elif isobj == isobj_predefined.isinstance:
+
+                def isobj(x):
+                    return isinstance(x, clz)
+
+        elif isobj is None:
+            raise ValueError("isobj cannot be None")
+
+        if isinstance(isclz, isclz_predefined):
+            if isclz == isclz_predefined.eq:
+
+                def isclz(x):
+                    return x == clz
+
+            elif isclz == isclz_predefined.issubclass:
+
+                def isclz(x):
+                    return inspect.isclass(x) and issubclass(x, clz)
+
+        elif isclz is None:
+            raise ValueError("isclz cannot be None")
+
+        return cls(isobj=isobj, isclz=isclz, serializer=serializer, deserializer=deserializer)
+
+
+_ADAPTERS: OrderedDict[Any, TypeAdapter] = collections.OrderedDict()
+
+
+def has_adapter(key: Any) -> bool:
+    """
+    Checks if a type adapter is registered for the given key.
+    :param key: the key of the type adapter.
+    :return: if a type adapter is registered for the given key.
+    """
+    return key in _ADAPTERS
+
+
+def set_adapter(key: Any, adapter: TypeAdapter, replace_existing: bool = True) -> None:
+    """
+    Registers a type adapter for the given key.
+    :param key: the key of the type adapter.
+    :param adapter: the type adapter.
+    :param replace_existing: if True, replace the existing type adapter if any;
+        otherwise, do not try to change the existing type adapter.
+    :raises KeyError: if a type adapter for the given key already exists and replace_existing is False.
+    """
+    if key in _ADAPTERS and not replace_existing:
+        raise KeyError(f"TypeAdapter for {key} already exists")
+    _ADAPTERS[key] = adapter
+
+
+def set_adapter_simple(
     clz: Type,
     serializer: Optional[Callable[[TObj], TData]] = None,
-    deserializer: Optional[Callable[[TData], TObj]] = None,
-    replace: bool = True,
-) -> bool:
+    deserializer: Optional[Callable[[TData, Type], TObj]] = None,
+    replace_existing: bool = True,
+) -> None:
     """
-    Register customized serializer and/or deserializer of a type.
-    The registered (de)serializer is only good for this particular type and *not* for its subtypes.
-    If an inheritable (de)serializer is desired, declare a method in the base class called `(de)serializer` instead.
-
-    :param clz: the type to register.
+    Registers a type adapter for the given class, using it as the key, and with the given serializer & deserializer.
+    :param clz: the class to set type adapter for.
     :param serializer: the serializer, can be None if only registering a deserializer.
     :param deserializer: the deserializer, can be None if only registering a serializer.
-    :param replace: if True, replace the existing (de)serializer if any; otherwise, do not change the existing (de)serializer.
-    :return: if any new (de)serializer is registered.
+    :param replace_existing: if True, replace the existing type adapter if any;
     """
-    changed = False
-
-    if serializer is not None:
-        if clz in _SERIALIZERS and not replace:
-            pass
-        else:
-            _SERIALIZERS[clz] = serializer
-            changed = True
-    if deserializer is not None:
-        if clz in _DESERIALIZERS and not replace:
-            pass
-        else:
-            _DESERIALIZERS[clz] = deserializer
-            changed = True
-
-    return changed
+    set_adapter(
+        clz,
+        TypeAdapter.for_clz(clz, serializer=serializer, deserializer=deserializer),
+        replace_existing=replace_existing,
+    )
 
 
-def unregister_type(clz: Type, serializer: bool = True, deserializer: bool = True) -> bool:
+def unset_adapter(key: Any) -> None:
     """
-    Unregister customized serializer and/or deserializer of a type.
-    Similar to register_type, the unregistering only happens for this particular type and *not* for its subtypes.
-
-    :param clz: the type to unregister.
-    :param serializer: if True (default), unregister the serializer.
-    :param deserializer: if True (default), unregister the deserializer.
-    :return: if any (de)serializer is unregistered.
+    Unregisters a type adapter for the given key.
+    :param key: the key of the type adapter.
     """
-    changed = False
-    if serializer:
-        if clz in _SERIALIZERS:
-            del _SERIALIZERS[clz]
-            changed = True
-    if deserializer:
-        if clz in _DESERIALIZERS:
-            del _DESERIALIZERS[clz]
-            changed = True
-    return changed
+    if key in _ADAPTERS:
+        del _ADAPTERS[key]
+
+
+def rank_first_adapter(key: Any) -> None:
+    """
+    Moves the type adapter for the given key to the first position.
+    :param key: the key of the type adapter.
+    """
+    _ADAPTERS.move_to_end(key, last=False)
+
+
+def rank_last_adapter(key: Any) -> None:
+    """
+    Moves the type adapter for the given key to the last position.
+    :param key: the key of the type adapter.
+    """
+    _ADAPTERS.move_to_end(key, last=True)
 
 
 def serialize(
@@ -328,18 +422,13 @@ def serialize(
     elif isinstance(obj, Enum):
         # Enum: use name
         return serialize(obj.name, fmt)
-    elif _is_obj_record_class(obj):
-        # RecordClass: convert to dict
-        if hasattr(obj, "__dict__"):
-            # Older versions of recordclass
-            return {k: serialize(v, fmt) for k, v in obj.__dict__.items()}
-        else:
-            # Newer versions of recordclass
-            return {f: serialize(getattr(obj, f), fmt) for f in obj.__fields__}
-    elif type(obj) in _SERIALIZERS:
-        # Use registered serializer if exists
-        return _SERIALIZERS[type(obj)](obj)
     else:
+        # find in all registered type adapters
+        for _, adapter in _ADAPTERS.items():
+            if adapter.isobj(obj) and adapter.serializer is not None:
+                return adapter.serializer(obj)
+
+        # no serializer found
         raise TypeError(f"Cannot serialize object of type {type(obj)}, please consider writing a serialize() function")
 
 
@@ -431,9 +520,13 @@ def deserialize(
         else:
             return data
 
-    # Use registered deserializer if exists
-    if clz in _DESERIALIZERS:
-        return _DESERIALIZERS[clz](data)
+    # Find in all registered type adapters
+    for _, adapter in _ADAPTERS.items():
+        if adapter.isclz(clz) and adapter.deserializer is not None:
+            if adapter.deserializer_2args:
+                return adapter.deserializer(data, clz)
+            else:
+                return adapter.deserializer(data)
 
     # List-like types
     if clz_origin in [list, tuple, set, collections.deque, frozenset]:
@@ -515,14 +608,6 @@ def deserialize(
             else:
                 return data
 
-    # RecordClass
-    if _is_clz_record_class(clz):
-        field_values = {}
-        for f, t in get_type_hints(clz).items():
-            if f in data:
-                field_values[f] = deserialize(data.get(f), t, error=error)
-        return clz(**field_values)
-
     # NamedTuple
     if _is_clz_named_tuple(clz):
         field_values = {}
@@ -574,34 +659,34 @@ def deserialize(
 try:
     import numpy as np
 
-    register_type(
+    set_adapter_simple(
         np.ndarray,
         serializer=lambda x: serialize(x.tolist()),
         deserializer=lambda x: np.array(x),
     )
 
     # integers
-    register_type(np.byte, serializer=np.byte.item, deserializer=np.byte)
-    register_type(np.short, serializer=np.short.item, deserializer=np.short)
-    register_type(np.intc, serializer=np.intc.item, deserializer=np.intc)
-    register_type(np.int_, serializer=np.int_.item, deserializer=np.int_)
-    register_type(np.longlong, serializer=np.longlong.item, deserializer=np.longlong)
+    set_adapter_simple(np.byte, serializer=np.byte.item, deserializer=np.byte)
+    set_adapter_simple(np.short, serializer=np.short.item, deserializer=np.short)
+    set_adapter_simple(np.intc, serializer=np.intc.item, deserializer=np.intc)
+    set_adapter_simple(np.int_, serializer=np.int_.item, deserializer=np.int_)
+    set_adapter_simple(np.longlong, serializer=np.longlong.item, deserializer=np.longlong)
 
     # unsigned integers
-    register_type(np.ubyte, serializer=np.ubyte.item, deserializer=np.ubyte)
-    register_type(np.ushort, serializer=np.ushort.item, deserializer=np.ushort)
-    register_type(np.uintc, serializer=np.uintc.item, deserializer=np.uintc)
-    register_type(np.uint, serializer=np.uint.item, deserializer=np.uint)
-    register_type(np.ulonglong, serializer=np.ulonglong.item, deserializer=np.ulonglong)
+    set_adapter_simple(np.ubyte, serializer=np.ubyte.item, deserializer=np.ubyte)
+    set_adapter_simple(np.ushort, serializer=np.ushort.item, deserializer=np.ushort)
+    set_adapter_simple(np.uintc, serializer=np.uintc.item, deserializer=np.uintc)
+    set_adapter_simple(np.uint, serializer=np.uint.item, deserializer=np.uint)
+    set_adapter_simple(np.ulonglong, serializer=np.ulonglong.item, deserializer=np.ulonglong)
 
     # floats
-    register_type(np.half, serializer=np.half.item, deserializer=np.half)
-    register_type(np.single, serializer=np.single.item, deserializer=np.single)
-    register_type(np.double, serializer=np.double.item, deserializer=np.double)
-    register_type(np.longdouble, serializer=np.longdouble.item, deserializer=np.longdouble)
+    set_adapter_simple(np.half, serializer=np.half.item, deserializer=np.half)
+    set_adapter_simple(np.single, serializer=np.single.item, deserializer=np.single)
+    set_adapter_simple(np.double, serializer=np.double.item, deserializer=np.double)
+    set_adapter_simple(np.longdouble, serializer=np.longdouble.item, deserializer=np.longdouble)
 
     # other scalars
-    register_type(np.bool_, serializer=np.bool_.item, deserializer=np.bool_)
+    set_adapter_simple(np.bool_, serializer=np.bool_.item, deserializer=np.bool_)
     # TODO: np.datetime64, np.timedelta64, np.object_, np.bytes_, np.str_, np.void, etc.
 except ImportError:
     pass
@@ -611,10 +696,10 @@ try:
     import pandas as pd
 
     # series
-    register_type(pd.Series, serializer=lambda x: serialize(x.to_dict()), deserializer=pd.Series)
+    set_adapter_simple(pd.Series, serializer=lambda x: serialize(x.to_dict()), deserializer=pd.Series)
 
     # dataframe
-    register_type(
+    set_adapter_simple(
         pd.DataFrame,
         serializer=lambda x: serialize(x.to_dict(orient="records")),
         deserializer=pd.DataFrame.from_records,
@@ -627,11 +712,62 @@ try:
     import torch
 
     # tensor
-    register_type(
+    set_adapter_simple(
         torch.Tensor,
         serializer=lambda x: serialize(x.tolist()),
         deserializer=torch.tensor,
     )
+except ImportError:
+    pass
+
+
+try:
+    import recordclass
+
+    def _is_obj_record_class(obj: Any) -> bool:
+        return obj is not None and isinstance(obj, recordclass.mutabletuple) or isinstance(obj, recordclass.dataobject)
+
+    def _is_clz_record_class(clz: Type) -> bool:
+        return (
+            clz is not None
+            and inspect.isclass(clz)
+            and (issubclass(clz, recordclass.mutabletuple) or issubclass(clz, recordclass.dataobject))
+        )
+
+    def _serialize_recordclass(obj) -> dict:
+        warnings.warn(
+            "The support for recordclass may be dropped in the future. Please consider using dataclass instead.",
+            DeprecationWarning,
+        )
+        if hasattr(obj, "__dict__"):
+            # Older versions of recordclass
+            return {k: serialize(v) for k, v in obj.__dict__.items()}
+        else:
+            # Newer versions of recordclass
+            return {f: serialize(getattr(obj, f)) for f in obj.__fields__}
+
+    def _deseralize_recordclass(data, clz) -> Any:
+        warnings.warn(
+            "The support for recordclass may be dropped in the future. Please consider using dataclass instead.",
+            DeprecationWarning,
+        )
+        field_values = {}
+        for f, t in get_type_hints(clz).items():
+            if f in data:
+                # TODO: the error parameter is lost
+                field_values[f] = deserialize(data.get(f), t)
+        return clz(**field_values)
+
+    set_adapter(
+        recordclass.RecordClass,
+        TypeAdapter(
+            isobj=_is_obj_record_class,
+            isclz=_is_clz_record_class,
+            serializer=_serialize_recordclass,
+            deserializer=_deseralize_recordclass,
+        ),
+    )
+
 except ImportError:
     pass
 

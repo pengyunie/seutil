@@ -5,8 +5,8 @@ import warnings
 from typing import Callable, Dict, NamedTuple, Optional, Tuple
 
 import pytest
+
 import seutil as su
-from recordclass import RecordClass
 from seutil.io import TData, TObj
 
 _MISSING = object()
@@ -180,26 +180,6 @@ def test_ser_named_tuple_func():
     check_serialization_ok(
         obj=ExampleNamedTuple(99, [3, 5], 42.0),
         data={"e": 99, "f": [3, 5], "g": 42.0},
-    )
-
-
-def test_ser_record_class():
-    ExampleNamedTuple = collections.namedtuple("ExampleNamedTuple", ["e", "f", "g"])
-
-    class ExampleRecordClass(RecordClass):
-        h: int
-        i: float
-        j: Dict[str, float] = None
-        k: Optional[ExampleNamedTuple] = None
-
-    check_serialization_ok(
-        obj=ExampleRecordClass(h=4, i=0.5, j={"a": 4, "b": 6.0}, k=ExampleNamedTuple(99, [3, 5], 42.0)),
-        data={
-            "h": 4,
-            "i": 0.5,
-            "j": {"a": 4, "b": 6.0},
-            "k": {"e": 99, "f": [3, 5], "g": 42.0},
-        },
     )
 
 

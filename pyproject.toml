@@ -26,7 +26,6 @@ dependencies = [
     "numpy>=1.14.4",
     "PyGitHub>=1.40",
     "PyYAML>=5.1",
-    "recordclass>=0.11.1",
     "tqdm>=4.62.3",
     "typing_inspect>=0.4.0",
     "unidiff>=0.5.5",
@@ -35,7 +34,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["hatch", "pytest>=6", "pytest-cov", "coverage[toml]", "black", "ruff"]
-dev-opt = ["numpy", "pandas", "torch", "ipykernel"]
+dev-opt = ["numpy", "pandas", "torch", "recordclass", "ipykernel"]
 
 [project.urls]
 Documentation = "https://seutil.readthedocs.io/en/latest/"
