@@ -1,0 +1,81 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "seutil"
+dynamic = ["version"]
+description = "Python utilities for SE research"
+readme = "README.rst"
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+authors = [{ name = "Pengyu Nie", email = "prodigy.sov@gmail.com" }]
+classifiers = [
+    "Topic :: Utilities",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX :: Linux",
+]
+dependencies = [
+    "ijson~=3.1.4",
+    "igraph>=0.9.10",
+    "jsonargparse[signatures]>=4.1.4",
+    "lazy-import>=0.2.2",
+    "numpy>=1.14.4",
+    "PyGitHub>=1.40",
+    "PyYAML>=5.1",
+    "tqdm>=4.62.3",
+    "typing_inspect>=0.4.0",
+    "unidiff>=0.5.5",
+    "xmltodict>=0.2.2",
+]
+
+[project.optional-dependencies]
+dev = ["hatch", "pytest>=6", "pytest-cov", "coverage[toml]", "black", "ruff"]
+dev-opt = ["numpy", "pandas", "torch", "recordclass", "ipykernel"]
+
+[project.urls]
+Documentation = "https://seutil.readthedocs.io/en/latest/"
+Issues = "https://github.com/pengyunie/seutil/issues"
+Source = "https://github.com/pengyunie/seutil"
+
+[tool.hatch.version]
+path = "src/seutil/__about__.py"
+
+# testing (pytest) and coverage (coverage, pytest-cov)
+[tool.coverage.run]
+source_pkgs = ["seutil", "tests"]
+branch = true
+parallel = true
+omit = ["src/seutil/__about__.py"]
+
+[tool.coverage.paths]
+seutil = ["src/seutil", "*/seutil/src/seutil"]
+tests = ["tests", "*/seutil/tests"]
+
+[tool.coverage.report]
+exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
+
+[tool.pytest.ini_options]
+addopts = "--ignore=deprecated --cov --cov-report xml:cov.xml"
+testpaths = ["tests/unit"]
+
+# formatting (black)
+[tool.black]
+target-version = ["py38"]
+line-length = 120
+
+# linting (ruff)
+[tool.ruff]
+target-version = "py38"
+line-length = 120
+select = [
+    "E", # pycodestyle error
+    "F", # pyflakes
+    "I", # isort
+]
+
+[tool.ruff.isort]
+known-first-party = ["seutil"]

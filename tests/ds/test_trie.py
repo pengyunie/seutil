@@ -261,9 +261,7 @@ def test_overlaps_with_self_has_value():
     trie2["alphaXXX"] = 1
     trie2["betaXXX"] = 1
 
-    e2overlaps = {
-        k: (t1, t2) for k, t1, t2 in trie1.overlaps_with(trie2, self_has_value=True)
-    }
+    e2overlaps = {k: (t1, t2) for k, t1, t2 in trie1.overlaps_with(trie2, self_has_value=True)}
     assert len(e2overlaps) == 2
     assert e2overlaps["alpha"][0][""] == 1
     assert "" not in e2overlaps["alpha"][1]
@@ -281,9 +279,7 @@ def test_overlaps_with_other_has_value():
     trie2["aaa"] = 4
     trie2["b"] = 5
 
-    e2overlaps = {
-        k: (t1, t2) for k, t1, t2 in trie1.overlaps_with(trie2, other_has_value=True)
-    }
+    e2overlaps = {k: (t1, t2) for k, t1, t2 in trie1.overlaps_with(trie2, other_has_value=True)}
     assert len(e2overlaps) == 1
     assert e2overlaps["b"][1][""] == 5
     assert "" not in e2overlaps["b"][0]
