@@ -1,33 +1,27 @@
 import math
+import os
 import traceback
 from datetime import datetime
 from time import sleep
-from typing import *
+from typing import Callable, List, TypeVar
 
 from github import Github, RateLimitExceededException
 from github.GithubException import GithubException
 from github.NamedUser import NamedUser
 from github.Repository import Repository
 
-from . import _config
-from .LoggingUtils import LoggingUtils
 from .BashUtils import BashUtils
+from .LoggingUtils import LoggingUtils
 
 
 class GitHubUtils:
     logger = LoggingUtils.get_logger("GitHubUtils", LoggingUtils.DEBUG)
 
     GITHUB_SEARCH_ITEMS_MAX = 1000
-    try:
-        DEFAULT_ACCESS_TOKEN = _config.get_config("github_access_token")
-        DEFAULT_GITHUB_OBJECT = Github(DEFAULT_ACCESS_TOKEN, per_page=100)
-    except:
-        DEFAULT_ACCESS_TOKEN = None
-        DEFAULT_GITHUB_OBJECT = None
-        logger.info(
-            "Fail to get github_access_token from config file.  Using GitHubUtils APIs will require compulsory input access_token"
-        )
-    # end try
+
+    DEFAULT_GITHUB_OBJECT = (
+        Github(os.environ["SU_GITHUB_ACCESS_TOKEN"], per_page=100) if "SU_GITHUB_ACCESS_TOKEN" in os.environ else None
+    )
 
     @classmethod
     def get_github(cls, access_token: str = None) -> Github:
