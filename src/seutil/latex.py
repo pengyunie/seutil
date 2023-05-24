@@ -8,7 +8,7 @@ import abc
 import sys
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 
 from . import io, log
 
@@ -71,8 +71,10 @@ class MacroUse(LatexItem):
 class Macro(LatexItem):
     DEFMACRO_COMMAND = "DefMacro"
 
-    def __init__(self, key: str, value: Optional[str] = None):
+    def __init__(self, key: str, value: Optional[Any] = None):
         self.key = key
+        if value is not None and not isinstance(value, str):
+            value = str(value)
         self.value = value
 
     def use(self) -> str:
