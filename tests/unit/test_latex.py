@@ -42,3 +42,13 @@ def test_latex_macro_use():
 def test_latex_macro_def():
     x = su.latex.Macro("test", "value")
     assert x.to_latex() == "\\DefMacro{test}{value}\n"
+
+
+def test_latex_macro_def_int():
+    x = su.latex.Macro("test", 42)
+    assert x.to_latex() == "\\DefMacro{test}{42}\n"
+
+
+def test_latex_macro_def_float():
+    x = su.latex.Macro("test", 42.0)
+    assert x.to_latex() == "\\DefMacro{test}{42.0}\n"
