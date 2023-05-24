@@ -5,10 +5,11 @@ Some parts inspired by https://github.com/JelteF/PyLaTeX, but this module means 
 """
 
 import abc
+import re
 import sys
 from enum import Enum
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from . import io, log
 
@@ -70,11 +71,10 @@ class MacroUse(LatexItem):
 
 class Macro(LatexItem):
     DEFMACRO_COMMAND = "DefMacro"
+    RE_DEF_MACRO = re.compile(r"\\DefMacro{(?P<key>[^}]+)}{(?P<value>[^}]*)}")
 
     def __init__(self, key: str, value: Optional[Any] = None):
         self.key = key
-        if value is not None and not isinstance(value, str):
-            value = str(value)
         self.value = value
 
     def use(self) -> str:
@@ -84,8 +84,40 @@ class Macro(LatexItem):
     def to_latex(self) -> str:
         if self.value is None:
             raise ValueError(f"Macro {self.key} has no value")
-        s = "\\" + self.DEFMACRO_COMMAND + "{" + self.key + "}{" + self.value + "}\n"
+        s = "\\" + self.DEFMACRO_COMMAND + "{" + self.key + "}{" + str(self.value) + "}\n"
         return s
+
+    @classmethod
+    def load_from_file(cls, file: Path) -> Dict[str, "Macro"]:
+        """
+        Loads the macros from a latex file.
+        Will convert the value of the macros to int or float, if possible.
+        TODO: does not work if the macro spans multiple lines.
+
+        :param file: the latex file.
+        :return: the indexed dictionary of {macro.key, macro}.
+        """
+        macros_indexed: Dict[str, Macro] = dict()
+
+        lines: List[str] = io.load(file, io.fmts.txtList)
+        for line in lines:
+            match = cls.RE_DEF_MACRO.fullmatch(line.strip())
+            if match is not None:
+                key = match.group("key")
+                value = match.group("value")
+
+                # Try to convert to int, then (if failing) float.
+                try:
+                    value = int(value)
+                except ValueError:
+                    try:
+                        value = float(value)
+                    except ValueError:
+                        pass
+
+                macros_indexed[key] = Macro(key, value)
+
+        return macros_indexed
 
 
 class File(LatexItem):
