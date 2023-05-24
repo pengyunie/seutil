@@ -52,3 +52,21 @@ def test_latex_macro_def_int():
 def test_latex_macro_def_float():
     x = su.latex.Macro("test", 42.0)
     assert x.to_latex() == "\\DefMacro{test}{42.0}\n"
+
+
+def test_latex_macro_load_from_file(tmp_path: Path):
+    su.io.dump(
+        tmp_path / "macros.tex",
+        r"""
+\DefMacro{test1}{1}
+\DefMacro{test2}{2.0}
+\DefMacro{test3}{4.2}
+\DefMacro{test4}{some text\xspace}
+""",
+        su.io.fmts.txt,
+    )
+    macros = su.latex.Macro.load_from_file(tmp_path / "macros.tex")
+    assert macros["test1"].value == 1
+    assert macros["test2"].value == 2.0
+    assert macros["test3"].value == 4.2
+    assert macros["test4"].value == r"some text\xspace"
