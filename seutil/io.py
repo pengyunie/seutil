@@ -876,9 +876,10 @@ def dump(
 
     # Check path existence
     if path.exists():
-        if exists_ok and not append:
-            # make sure the existing file is removed in non-append mode
-            rm(path)
+        if exists_ok:
+            if not append:
+                # make sure the existing file is removed in non-append mode
+                rm(path)
         else:
             raise FileExistsError(str(path))
 
