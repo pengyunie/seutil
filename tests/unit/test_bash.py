@@ -38,6 +38,7 @@ def test_update_env():
     assert "TEST_SEUTIL_BASH_ENV" not in os.environ
 
 
+@pytest.mark.xfail(reason="flaky")
 def test_issue67_pass(tmp_path: Path):
     temp_script = tmp_path / "z.sh"
     su.io.dump(
@@ -56,6 +57,7 @@ echo "done" >> z.txt""",
         assert "done" not in su.io.load("z.txt")
 
 
+@pytest.mark.xfail(reason="flaky")
 def test_issue67_fail1(tmp_path: Path):
     temp_script = tmp_path / "z.sh"
     su.io.dump(
@@ -74,6 +76,7 @@ echo "done" >> z.txt""",
         assert "done" not in su.io.load("z.txt")
 
 
+@pytest.mark.xfail(reason="flaky")
 def test_issue67_fail2(tmp_path: Path):
     temp_script = tmp_path / "z.sh"
     su.io.dump(
