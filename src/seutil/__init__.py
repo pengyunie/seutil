@@ -10,9 +10,7 @@ import lazy_import
 from . import arg, bash, io, log, pbar
 from .BashUtils import BashUtils
 from .GitHubUtils import GitHubUtils
-from .IOUtils import IOUtils
 from .LoggingUtils import LoggingUtils
-from .Stream import Stream
 from .TimeUtils import TimeoutException, TimeUtils
 
 project = lazy_import.lazy_module("seutil.project")
