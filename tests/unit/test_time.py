@@ -29,3 +29,14 @@ def test_time_func_record():
         foo()
     assert len(times) == 10
     assert all(t >= 0.01 for t in times)
+
+
+def test_timer():
+    test_start = time.time()
+    with su.time.Timer() as timer:
+        time.sleep(0.05)
+    test_end = time.time()
+
+    assert timer.elapsed >= 0.05
+    assert test_start <= timer.start < test_end
+    assert test_start < timer.end <= test_end

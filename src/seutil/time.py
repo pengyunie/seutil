@@ -47,22 +47,20 @@ def time_func(
     """
     Decorates a function to print/record its execution time when it executes.
 
-    The simplest usage is to just add `@timer` above the function definition. This will
-    print the execution time to stdout.
-    ```
-    @su.time.timer
-    def foo(): ...
-    ```
-
-    You can also save the execution time to some global variable, e.g., a list.
-    ```
-    list_times = []
-    @su.time.timer(record_callback=list_times.append)
-    def foo(): ...
-    ```
-
     If the function raises an exception, the execution time will still be
     printed/recorded before the exception is propagated.
+
+    Usage:
+    ```
+    # print to stdout
+    @su.time.timer
+    def foo(): ...
+
+    # save the execution time to some global variable, e.g., a list
+    list_times = []
+    @su.time.timer(record_callback=list_times.append)
+    def bar(): ...
+    ```
 
     :param func: The function to be decorated.
     :param print_to: The place to print the execution time. If neither print_to nor
@@ -99,3 +97,30 @@ def time_func(
         return decorator_timer
     else:
         return decorator_timer(_func)
+
+
+class Timer:
+    """
+    Records the start/end/elapsed time to execute a code block.
+
+    Usage:
+    ```
+    with su.time.Timer() as timer:
+        ...
+    print(f"Execution took {timer.elapsed}s"
+    print(f"... started at {timer.start}, ended at {timer.end}")
+    ```
+    """
+
+    def __init__(self):
+        self.start: float = None
+        self.end: float = None
+        self.elapsed: float = None
+
+    def __enter__(self):
+        self.start = time.time()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.end = time.time()
+        self.elapsed = self.end - self.start
