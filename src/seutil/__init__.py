@@ -7,11 +7,11 @@ if module_root not in sys.path:
 
 import lazy_import
 
-from . import arg, bash, io, log, pbar
+from . import arg, bash, io, log, pbar, time
 from .BashUtils import BashUtils
 from .GitHubUtils import GitHubUtils
 from .LoggingUtils import LoggingUtils
-from .TimeUtils import TimeoutException, TimeUtils
+from .TimeUtils import TimeUtils
 
 project = lazy_import.lazy_module("seutil.project")
 latex = lazy_import.lazy_module("seutil.latex")
@@ -28,14 +28,14 @@ __all__ = [
     "bash",
     "io",
     "log",
-    "latex",
+    "pbar",
+    "time",
     "project",
+    "latex",
     "ds",
     "GitHubUtils",
     "MiscUtils",
     "Stream",
-    "TimeUtils",
-    "TimeoutException",
 ]
 
 # Remove temporary names

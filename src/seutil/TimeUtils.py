@@ -1,10 +1,14 @@
+"""
+Deprecated.
+
+Use `seutil.time` instead.
+"""
+
 import signal
-from contextlib import contextmanager
 import time
+from contextlib import contextmanager
 
-
-class TimeoutException(Exception):
-    pass
+from .time import TimeoutException
 
 
 class TimeUtils:
