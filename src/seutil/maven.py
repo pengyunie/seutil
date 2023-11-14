@@ -92,8 +92,10 @@ class MavenModule:
             return
 
         pom = xmltodict.parse(io.load(self.project.dir / self.rel_path / "pom.xml", fmt=io.fmts.txt))
-
-        plugins = pom.get("project", {}).get("build", {}).get("plugins", {}).get("plugin", [])
+        try:
+            plugins = pom.get("project", {}).get("build", {}).get("plugins", {}).get("plugin", [])
+        except AttributeError:
+            plugins = []
         if not isinstance(plugins, list):
             plugins = [plugins]
             pom.get("build", {}).get("plugins", {})["plugin"] = plugins
