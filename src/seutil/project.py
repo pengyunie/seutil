@@ -175,16 +175,19 @@ class Project:
         with io.cd(self._dir):
             bash.run("git fetch --all", 0)
 
-    def checkout(self, revision: str, forced: bool = False) -> None:
+    def checkout(self, revision: str, forced: bool = False, clean: bool = False) -> None:
         """
         Checks out the given revision (or branch or tag) of the project.
         :param revision: the revision (or branch or tag) to checkout.
         :param forced: if True, do force checkout (discarding all local changes that might prevent a checkout).
+        :param clean: if True, do clean checkout (removing all untracked files and directories, including those specified in .gitignore).
         """
         self.require_cloned("checkout")
         logger.info(f"Project {self.full_name}: checking out revision {revision} ({forced=})")
 
         with io.cd(self._dir):
+            if clean:
+                bash.run("git clean -fdx", 0)
             cmd = f"git checkout {revision}"
             if forced:
                 cmd += " -f"
