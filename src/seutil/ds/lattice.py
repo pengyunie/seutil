@@ -1,5 +1,6 @@
-from .graph_common import GraphLikeADT, Node
 from typing import List, Optional, Set
+
+from .graph_common import GraphLikeADT, Node
 
 
 class Lattice(GraphLikeADT):

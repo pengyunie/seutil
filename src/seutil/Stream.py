@@ -1,8 +1,9 @@
-from pathlib import Path
-import numpy as np
 import random
 import subprocess
+from pathlib import Path
 from typing import *
+
+import numpy as np
 
 from .IOUtils import IOUtils
 

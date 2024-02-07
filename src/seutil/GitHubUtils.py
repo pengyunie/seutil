@@ -275,7 +275,7 @@ class GitHubUtils:
                             is_allow_fork=is_allow_fork,
                             max_retry_times=max_retry_times,
                         )
-                    except GithubException as e:
+                    except GithubException:
                         cls.logger.warning("Cannot get the repos of user {}".format(user))
                         continue
                     # end try
@@ -300,7 +300,7 @@ class GitHubUtils:
                 cls.logger.warning("Strategy {} is not implemented yet.".format(strategy))
                 cls.logger.warning("Nothing happens.")
             # end if
-        except KeyboardInterrupt as e:
+        except KeyboardInterrupt:
             cls.logger.warning("Interrupted. Returning partial results.")
         finally:
             cls.logger.warning("Got {}/{} repos.".format(len(names_repos), max_num_repos))

@@ -1,7 +1,6 @@
-from typing import *
-
 import os
 import unittest
+from typing import *
 
 from seutil import BashUtils
 

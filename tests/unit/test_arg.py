@@ -1,7 +1,8 @@
 import os
 
-import seutil as su
 from jsonargparse import ArgumentParser
+
+import seutil as su
 
 
 def subject_rpath(arg: su.arg.RPath):

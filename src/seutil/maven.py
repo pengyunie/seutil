@@ -125,7 +125,7 @@ class MavenModule:
                 if retry_with_package:
                     bash.run(f"mvn package -DskipTests {SKIPS}", 0, timeout=timeout)
                 else:
-                    raise RuntimeError(f"Failed to compile")
+                    raise RuntimeError("Failed to compile")
 
     @property
     def dir(self) -> Path:
@@ -195,7 +195,7 @@ class MavenProject:
                 if retry_with_package:
                     bash.run(f"mvn package -DskipTests {SKIPS}", 0, timeout=timeout)
                 else:
-                    raise RuntimeError(f"Failed to compile")
+                    raise RuntimeError("Failed to compile")
 
     def install(self, timeout=600, clean=False):
         with io.cd(self.dir):
@@ -203,7 +203,7 @@ class MavenProject:
                 bash.run("mvn clean", 0)
             rr = bash.run(f"mvn install -DskipTests {SKIPS}", 0, timeout=timeout)
             if rr.returncode != 0:
-                raise RuntimeError(f"Failed to install")
+                raise RuntimeError("Failed to install")
 
     def get_module_by_path(self, file_path: Path) -> MavenModule:
         module_path = file_path.parent

@@ -57,7 +57,7 @@ def itos_human_readable(value: int, precision: int = 1) -> str:
     """
     try:
         value = int(value)
-    except (TypeError, ValueError) as e:
+    except (TypeError, ValueError):
         raise TypeError("Value can not be converted to int: {}".format(value))
 
     if value < POWERS[0]:

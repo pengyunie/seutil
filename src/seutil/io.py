@@ -494,7 +494,7 @@ def deserialize(
         try:
             return deserialize(data, inner_clz, error=error)
         except DeserializationError as e:
-            raise DeserializationError(data, clz, f"(Optional removed) " + e.reason)
+            raise DeserializationError(data, clz, "(Optional removed) " + e.reason)
 
     # Union type: try each inner type
     if typing_inspect.is_union_type(clz):
@@ -574,7 +574,7 @@ def deserialize(
 
         if clz_origin == collections.OrderedDict:
             warnings.warn(
-                f"The order of items in OrderedDict may not be preserved during deserialization",
+                "The order of items in OrderedDict may not be preserved during deserialization",
                 InfoLossWarning,
             )
 

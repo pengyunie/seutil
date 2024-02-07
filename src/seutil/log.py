@@ -8,7 +8,6 @@ This module assists the logging standard library.  The main functionality is:
 """
 import logging
 import sys
-from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional, Union
@@ -18,6 +17,11 @@ __all__ = [
     "get_logger",
 ]
 
+CRITICAL = logging.CRITICAL
+ERROR = logging.ERROR
+WARNING = logging.WARNING
+INFO = logging.INFO
+DEBUG = logging.DEBUG
 
 LOGGING_NAMESPACE = "su"
 
