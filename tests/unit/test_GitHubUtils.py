@@ -1,6 +1,4 @@
-import os
 import unittest
-from github.GithubException import GithubException
 
 from seutil import GitHubUtils
 

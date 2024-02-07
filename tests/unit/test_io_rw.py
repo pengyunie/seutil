@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+
 import seutil as su
 
 # sample data that should not require serialization (thus works for all formats)

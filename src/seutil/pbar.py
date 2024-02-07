@@ -81,7 +81,7 @@ class PBarManager:
                     self.switch(index - 1)
                 del self.instances[index]
             except ValueError:
-                print(f"WARNING: removing an instance that is not managed by me")
+                print("WARNING: removing an instance that is not managed by me")
                 pass
         self.update()
 

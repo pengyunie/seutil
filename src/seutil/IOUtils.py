@@ -1,16 +1,16 @@
-from typing import *
-
-from collections import defaultdict
-from enum import Enum
 import inspect
 import json
 import os
-from pathlib import Path
 import pickle as pkl
 import pydoc
-import recordclass
 import shutil
 import subprocess
+from collections import defaultdict
+from enum import Enum
+from pathlib import Path
+from typing import *
+
+import recordclass
 import typing_inspect
 import yaml
 
