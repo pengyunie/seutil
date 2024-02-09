@@ -6,6 +6,7 @@ This module assists the logging standard library.  The main functionality is:
 * `setup` method to attach them to the root logger.
 * `get_logger` method to quickly create a logger with customized level.
 """
+
 import logging
 import sys
 from logging.handlers import RotatingFileHandler
