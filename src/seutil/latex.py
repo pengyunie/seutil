@@ -136,13 +136,16 @@ class File(LatexItem):
         """
         Creates a latex file which holds a list of items.
         :param path: the path to use when saving the file; this parameter can also be provided to the save() method.
-        :param is_append: if the file already exists, whether to append to it, otherwise overwrite it; this parameter can also be provided to the save() method.
-        :param auto_notice: whether to automatically add a notice comment in the generated file which contains the name of the script file and function.
+        :param is_append: if the file already exists, whether to append to it, otherwise overwrite it; this parameter
+            can also be provided to the save() method.
+        :param auto_notice: whether to automatically add a notice comment in the generated file which contains the name
+            of the script file and function.
         :param newline_mode: mode for inserting newlines between items:
             - auto: (default) insert newlines if the previous item doesn't end with newline.
             - always: always insert newlines.
             - never: never insert newlines.
-        TODO: eventually make sure all items that are sensitive to newlines insert newlines for themselves, and change the default to never.
+        TODO: eventually make sure all items that are sensitive to newlines insert newlines for themselves, and change
+        the default to never.
         """
         self.path: Optional[Path] = path
         self.is_append: Optional[bool] = is_append

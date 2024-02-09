@@ -42,9 +42,13 @@ class Project:
     A collection of `Project` can be saved to a json/yaml file, as a corpus of software projects.
     `Project` provides common version control operations, such as cloning, checking out, etc.
 
-    :param full_name: the full name of the project; this name is used as the directory/file name when operating on the project, so it should be unique and path-safe (i.e., does not contain '/', ' ', or other special characters that could cause trouble being a path). The recommended name for a project $repo/$name is $repo_$name (it is unique if $repo does not contain '_', which is the case at least for GitHub).
+    :param full_name: the full name of the project; this name is used as the directory/file name when operating on the
+        project, so it should be unique and path-safe (i.e., does not contain '/', ' ', or other special characters that
+        could cause trouble being a path). The recommended name for a project $repo/$name is $repo_$name (it is unique
+        if $repo does not contain '_', which is the case at least for GitHub).
     :param url: the URL to clone the project from.
-    :param data: other information of the project stored in key-value pairs, such as revision, branch, etc.; keys should be string and values should be serializable.
+    :param data: other information of the project stored in key-value pairs, such as revision, branch, etc.; keys should
+        be string and values should be serializable.
     """
 
     full_name: str
@@ -104,7 +108,8 @@ class Project:
         :param exists: the action to take if the directory already exists:
             * ignore (default): do nothing.
             * remove: remove the directory and clone the project again.
-            * pull: update the project by pulling the latest changes; may fail if there is no internet connection or the remote url is not accessible any more.
+            * pull: update the project by pulling the latest changes; may fail if there is no internet connection or the
+                remote url is not accessible any more.
             * error: raise an error.
         """
         if name is None:
@@ -137,8 +142,8 @@ class Project:
 
     def set_cloned_dir(self, dir: Path) -> None:
         """
-        Tells the project that it has been cloned to the given directory, such that more operations can be performed on it.
-        We will trust that you provided a valid directory.
+        Links the project to an existing cloned copy.
+        Currently, no check is performed to ensure that the directory is indeed a clone of the project.
         """
         self._dir = dir
         logger.info(f"Project {self.full_name}: set to be cloned at {dir}")
@@ -180,7 +185,7 @@ class Project:
         Checks out the given revision (or branch or tag) of the project.
         :param revision: the revision (or branch or tag) to checkout.
         :param forced: if True, do force checkout (discarding all local changes that might prevent a checkout).
-        :param clean: if True, do clean checkout (removing all untracked files and directories, including those specified in .gitignore).
+        :param clean: if True, do clean checkout (removing all untracked and git-ignored files and directories).
         """
         self.require_cloned("checkout")
         logger.info(f"Project {self.full_name}: checking out revision {revision} ({forced=})")
@@ -232,13 +237,15 @@ class Project:
 
         :param func: the function to run, which takes a Project object and a string revision.
         :param revisions: the revisions to run the function on.
-        :param auto_checkout: if set to False, will not automatically checkout each revision (for example, if func does that itself, or if func does not need the project to be checked out at the given revision).
+        :param auto_checkout: if set to False, will not automatically checkout each revision (for example, if func does
+            that itself, or if func does not need the project to be checked out at the given revision).
         :param errors: what to do if the function throws errors:
             * ignore: do nothing, not even say a word.
             * warning: make a log.warning for each error.
             * collate (default): collect all errors, and raise a CollatedErrors at the end.
             * error: raise immediately after the first error.
-        :param pbar: if provided, the (tqdm) progress bar to use; only the description and the count of the progress bar will be updated, but the total should be set before entering this function.
+        :param pbar: if provided, the (tqdm) progress bar to use; only the description and the count of the progress bar
+            will be updated, but the total should be set before entering this function.
         :return: the list of return values of the function.
         """
         assert errors in ["ignore", "warning", "collate", "error"]

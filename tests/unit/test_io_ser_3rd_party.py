@@ -156,7 +156,7 @@ class Test_io_ser_pytorch:
         )
 
     @pytest.mark.xfail(
-        reason="types of tensors are not serialized, thus after deserialization tensor will have the default types (long or float)"
+        reason="types of tensors collapse to the default ones (long/float) after a serialization-deserialization loop"
     )
     def test_ser_tensor_not_serializing_type_long(self):
         check_serialization_ok(
@@ -166,7 +166,7 @@ class Test_io_ser_pytorch:
         )
 
     @pytest.mark.xfail(
-        reason="types of tensors are not serialized, thus after deserialization tensor will have the default types (long or float)"
+        reason="types of tensors collapse to the default ones (long/float) after a serialization-deserialization loop"
     )
     def test_ser_tensor_not_serializing_type_float(self):
         check_serialization_ok(

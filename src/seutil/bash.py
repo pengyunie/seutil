@@ -23,7 +23,7 @@ class BashError(RuntimeError):
         self.stderr = completed_process.stderr
 
     def __str__(self) -> str:
-        s = f"Command '{self.cmd}' failed with returncode {self.returncode}, expected returncode {self.check_returncode}.\n"
+        s = f"Command '{self.cmd}' failed with return code {self.returncode}, expected {self.check_returncode}.\n"
         show_full_output = os.environ.get("SEUTIL_SHOW_FULL_OUTPUT", "1") not in {
             "0",
             "false",
@@ -83,7 +83,8 @@ def run(
     :raises: subprocess.TimeoutExpired if the command timed out
     """
     # potentially append `env` to command to collect the environment variables
-    # TODO: this is hacky: it may mess up some commands; the env won't be collected when timeout; and variable values longer than 1 line will break the collection
+    # TODO: this is hacky: it may mess up some commands; the env won't be collected when timeout; and variable values
+    # longer than 1 line will break the collection
     if update_env:
         tempfile_update_env = io.mktmp("seutil-bash", ".txt")
         cmd += f" ; env > {tempfile_update_env}"
@@ -96,7 +97,8 @@ def run(
     kwargs["stdin"] = subprocess.PIPE
     kwargs["stdout"] = subprocess.PIPE
     kwargs["stderr"] = subprocess.PIPE
-    # > start a new session to properly kill all ancestor processes upon timeout (https://alexandra-zaharia.github.io/posts/kill-subprocess-and-its-children-on-timeout-python/)
+    # > start a new session to properly kill all ancestor processes upon timeout
+    # (https://alexandra-zaharia.github.io/posts/kill-subprocess-and-its-children-on-timeout-python/)
     # TODO: when the minimum Python requirement is >= 3.11, use process_group instead of start_new_session
     kwargs["start_new_session"] = True
 
