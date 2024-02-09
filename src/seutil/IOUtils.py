@@ -1,3 +1,4 @@
+# ruff: noqa
 import inspect
 import json
 import os

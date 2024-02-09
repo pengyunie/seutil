@@ -216,7 +216,7 @@ def mktmp_dir(
 
 # object before serialization
 TObj = TypeVar("TObj")
-# data after serialization, usually contain only primitive types and simple list and dict structures, that can be directly stored to disk
+# data after serialization, should only use python-primitive types and structures that can be directly stored to disk
 TData = TypeVar("TData")
 # the target of deserialization, either a type or a type hint
 TType = TypeVar("TType")
@@ -386,7 +386,8 @@ def serialize(
     Serializes an object into a data structure with only primitive types, list, dict.
     If fmt is provided, its formatting constraints are taken into account. Supported fmts:
     * json, jsonPretty, jsonNoSort, jsonList: dict only have str keys.
-    TODO: move this considering of formatting constraints to a separate function, and let it automatically happen during dump; probably also add a reverse function which happens during load.
+    TODO: move this considering of formatting constraints to a separate function, and let it automatically happen during
+    dump; probably also add a reverse function which happens during load.
 
     :param obj: the object to be serialized.
     :param fmt: (optional) the target format.
@@ -540,7 +541,7 @@ def deserialize(
             # Unpack list to tuple
             return tuple(
                 [
-                    # If the list has more items than Tuple[xxx] declared (e.g., [1, 2, 3], Tuple[int]), repeat the last declared type
+                    # if more objects found than types in Tuple (e.g., [1, 2, 3] vs. Tuple[int]), repeat the last type
                     deserialize(
                         x,
                         clz_args[min(i, len(clz_args) - 1)] if generic else None,

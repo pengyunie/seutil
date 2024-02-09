@@ -29,15 +29,24 @@ LOGGING_NAMESPACE = "su"
 handler_stderr = logging.StreamHandler(sys.stderr)
 handler_file = None
 
+DEFAULT_FMT_STDERR = "[{asctime}{levelname[0]}]{name}: {message}"
+DEFAULT_DATEFMT_STDERR = "%H:%M:%S"
+DEFAULT_FMT_FILE = (
+    "[{asctime}|{relativeCreated:.3f}|{levelname:7}]"
+    + "{name}: {message}"
+    + " [@{filename}:{lineno}|{funcName}|pid {process}|tid {thread}]"
+)
+DEFAULT_DATEFMT_FILE = "%Y-%m-%d %H:%M:%S"
+
 
 def setup(
     log_file: Optional[Union[str, Path]] = None,
     level_stderr: Union[int, str] = logging.INFO,
     level_file: Union[int, str] = logging.DEBUG,
-    fmt_stderr: str = "[{asctime}{levelname[0]}]{name}: {message}",
-    datefmt_stderr: str = "%H:%M:%S",
-    fmt_file: str = "[{asctime}|{relativeCreated:.3f}|{levelname:7}]{name}: {message} [@{filename}:{lineno}|{funcName}|pid {process}|tid {thread}]",
-    datefmt_file: str = "%Y-%m-%d %H:%M:%S",
+    fmt_stderr: str = DEFAULT_FMT_STDERR,
+    datefmt_stderr: str = DEFAULT_DATEFMT_STDERR,
+    fmt_file: str = DEFAULT_FMT_FILE,
+    datefmt_file: str = DEFAULT_DATEFMT_FILE,
     clear_handlers: bool = True,
     **kwargs_file: dict,
 ):

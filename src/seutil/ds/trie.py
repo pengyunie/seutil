@@ -7,16 +7,20 @@ TValue = TypeVar("TValue")
 
 class Trie(Generic[TElem, TValue]):
     """
-    A Trie tree stores the mapping from sequences to values. Each item in the sequence is stored as a node in the tree, and sequences with the same prefix share the same node, to speed up the lookup.
+    A Trie tree stores the mapping from sequences to values. Each item in the sequence is stored as a node in the tree,
+    and sequences with the same prefix share the same node, to speed up the lookup.
 
-    The tree is implemented recursively using dict, where each node is a dict of current node to its children. A special key `empty_elem` (by default empty string) is used to indicate a node has value.
+    The tree is implemented recursively using dict, where each node is a dict of current node to its children. A special
+    key `empty_elem` (by default empty string) is used to indicate a node has value.
 
-    The value can be any object; the default `True` value is ok if the value is not important and only containment checking is needed.
+    The value can be any object; the default `True` value is ok if the value is not important and only containment
+    checking is needed.
 
     Using the default parameters of `empty_elem`, `join_func`, and `value` results in a classical trie tree for words.
 
     :param empty_elem: the empty element of this trie; by default empty string.
-    :param join_func: the function to join a sequence of elements to a thing, used when reporting the sequence during traversing the trie; by default `"".join`.
+    :param join_func: the function to join a sequence of elements to a thing, used when reporting the sequence
+        during traversing the trie; by default `"".join`.
     """
 
     MISSING = object()  # used to distinguish between None and missing values
@@ -90,7 +94,8 @@ class Trie(Generic[TElem, TValue]):
         Computes the value of the given key (potentially add/remove a key-value pair).
         Faster than get+set by avoiding searching for the key twice.
         :param key: the key to update.
-        :param update_func: the function to update the value, which takes as input the old value (or `Trie.MISSING` if there was no old value), and returns the new value (or `Trie.MISSING` to indicate removing the key from trie).
+        :param update_func: the function to update the value, which takes as input the old value (or `Trie.MISSING` if
+            no old value), and returns the new value (or `Trie.MISSING` to remove the key from trie).
         :return: the old value of the key, or `Trie.MISSING` if there was no old value.
         """
         cur = self.data
@@ -209,7 +214,7 @@ class Trie(Generic[TElem, TValue]):
         Gets the subtrie starting at the given prefix, with respect to this trie.
         If the prefix does not exist in this subtrie, an empty trie is returned.
         :param prefix: the prefix that the subtrie should start at.
-        :return: the subtrie, which shares storage with the original trie (use `__copy__` or `__deepcopy__` to get a copy).
+        :return: the subtrie, which shares storage with the original trie (use `__deepcopy__` to get a copy).
         """
         cur = self.data
         for c in prefix:
@@ -225,7 +230,8 @@ class Trie(Generic[TElem, TValue]):
         Gets the subtrie that is bounded by the given key: all keys in the returned subtrie are prefix of the given key.
         If no prefix of the key exists in this subtrie, an empty trie is returned.
         :param key: the key that the subtrie should be bounded to.
-        :return: the subtrie, which does not share structure, but shares values with the original trie (use `__deepcopy__` to get a deep copy).
+        :return: the subtrie, which does not share structure, but shares values with the original trie
+            (use `__deepcopy__` to get a copy).
         """
         cur = self.data
         new_trie = Trie(self.empty_elem, self.join_func)
@@ -251,7 +257,8 @@ class Trie(Generic[TElem, TValue]):
         """
         Gets the subtrie whose keys only use the given elements.
         :param elems: the elements that the subtrie can use.
-        :return: the subtrie, which does not share structure, but shares values with the original trie (use `__deepcopy__` to get a deep copy).
+        :return: the subtrie, which does not share structure, but shares values with the original trie
+            (use `__deepcopy__` to get a copy).
         """
         new_trie = Trie(self.empty_elem, self.join_func)
         queue = [(self.data, new_trie.data)]
@@ -270,7 +277,7 @@ class Trie(Generic[TElem, TValue]):
     def subtries(self) -> Iterable[Tuple[TElem, "Trie[TElem, TValue]"]]:
         """
         Iterates over all level-1 subtries of this trie.
-        The returned subtrie shares storage with the original trie (use `__copy__` or `__deepcopy__` to get a copy).
+        The returned subtrie shares storage with the original trie (use `__deepcopy__` to get a copy).
         """
         for k, v in self.data.items():
             if k != self.empty_elem:

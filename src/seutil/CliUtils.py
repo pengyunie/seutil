@@ -1,3 +1,4 @@
+# ruff: noqa
 import argparse
 from typing import *
 

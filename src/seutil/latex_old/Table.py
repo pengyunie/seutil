@@ -1,3 +1,4 @@
+# ruff: noqa
 class Table:
     def __init__(
         self, big=False, font_size="small", align="center", caption="Default Table", label="fig:table:default"
