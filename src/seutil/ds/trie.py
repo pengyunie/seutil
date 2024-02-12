@@ -31,8 +31,10 @@ class Trie(Generic[TElem, TValue]):
         join_func: Optional[Callable[[Iterable[TElem]], Any]] = lambda x: "".join(x),
     ):
         if join_func is None:
+
             def join_func(x):
                 return x
+
         self.empty_elem = empty_elem
         self.data = {}
         self.join_func = join_func
