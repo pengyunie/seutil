@@ -1,11 +1,11 @@
 import random
 import subprocess
 from pathlib import Path
-from typing import *
+from typing import Callable, List, Union
 
 import numpy as np
 
-from .IOUtils import IOUtils
+from . import io
 
 
 class Stream:
@@ -26,7 +26,6 @@ class Stream:
         stream = Stream()
         if one_or_more_items is not None:
             stream.items = list(one_or_more_items)
-        # end if, if
         return stream
 
     @classmethod
@@ -34,7 +33,7 @@ class Stream:
         """
         Get a stream of the files under the directory.
         """
-        with IOUtils.cd(dir_path):
+        with io.cd(dir_path):
             cmd_find = "find -mindepth 1 -maxdepth 1 -type f"
             files = (
                 subprocess.run(["bash", "-c", cmd_find], stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n")[:-1]
@@ -50,7 +49,7 @@ class Stream:
         """
         Get a stream of the sub-directories under the directory.
         """
-        with IOUtils.cd(dir_path):
+        with io.cd(dir_path):
             cmd_find = "find -mindepth 1 -maxdepth 1 -type d"
             dirs = (
                 subprocess.run(["bash", "-c", cmd_find], stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n")[:-1]
@@ -85,7 +84,7 @@ class Stream:
             for item in self.items:
                 try:
                     new_item = map_func(item)
-                except:
+                except Exception:
                     if errors == "ignore":
                         yield default
                     else:
@@ -101,12 +100,11 @@ class Stream:
         for item in self.items:
             try:
                 peak_func(item)
-            except:
+            except Exception:
                 if errors == "ignore":
                     continue
                 else:
                     raise
-        # end for
         return self
 
     def split(self, fraction_list: List[float], count_func: Callable[[str], float] = lambda x: 1):
@@ -129,11 +127,8 @@ class Stream:
                 cut_index_list.append(i + 1)
                 if len(cut_index_list) >= len(cum_expected_count_list):
                     break
-                # end if
-        # end for if
         if last_i != len(cum_count_list):
             cut_index_list.append(len(cum_count_list))
-        # end if
         cut_index_list.insert(0, 0)
         return tuple(
             Stream.of(self.items[cut_index_list[i] : cut_index_list[i + 1]]) for i in range(len(cut_index_list) - 1)
@@ -172,7 +167,7 @@ class Stream:
         return self.items.__len__()
 
     def __str__(self):
-        return "Stream with {} items".format(len(self.items))
+        return f"Stream with {len(self.items)} items"
 
     def __repr__(self):
         return self.__str__()

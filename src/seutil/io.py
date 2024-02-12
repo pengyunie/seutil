@@ -642,7 +642,7 @@ def deserialize(
     # Primitive types
     if clz_origin == type(data):
         return data
-    if clz_origin == float and type(data) == int:
+    if clz_origin == float and isinstance(data, int):
         return data
 
     if error == "raise":

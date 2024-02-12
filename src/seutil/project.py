@@ -266,7 +266,7 @@ class Project:
                     results.append(func(self, revision))
             except KeyboardInterrupt:
                 raise
-            except:
+            except Exception:
                 if errors == "ignore":
                     pass
                 elif errors == "warning":
