@@ -10,13 +10,12 @@ from github.GithubException import GithubException
 from github.NamedUser import NamedUser
 from github.Repository import Repository
 
-from .BashUtils import BashUtils
-from .LoggingUtils import LoggingUtils
+from . import bash, log
+
+logger = log.get_logger(__name__, log.INFO)
 
 
 class GitHubUtils:
-    logger = LoggingUtils.get_logger("GitHubUtils", LoggingUtils.DEBUG)
-
     GITHUB_SEARCH_ITEMS_MAX = 1000
 
     DEFAULT_GITHUB_OBJECT = (
@@ -37,7 +36,6 @@ class GitHubUtils:
         """
 
         DEFAULT_GITHUB_OBJECT = None
-        logger = None
 
         def __init__(self, github: Github = DEFAULT_GITHUB_OBJECT):
             self.github = github
@@ -46,32 +44,25 @@ class GitHubUtils:
         def __enter__(self):
             if self.github is None:
                 self.github = self.DEFAULT_GITHUB_OBJECT
-            # end if
 
             # Check rate limit
             rate_limit_remain, rate_limit = self.github.rate_limiting
             if rate_limit_remain <= 1:
-                self.logger.debug("Rate limit {} / {}".format(rate_limit_remain, rate_limit))
+                logger.debug(f"Rate limit {rate_limit_remain}/{rate_limit}")
                 rate_limit_reset_time = datetime.fromtimestamp(self.github.rate_limiting_resettime)
                 rate_limit_wait_seconds = math.ceil((rate_limit_reset_time - datetime.now()).total_seconds()) + 1
                 if rate_limit_wait_seconds > 0:
-                    self.logger.warning(
-                        "Rate limit will recover at: {}, will wait for {} seconds.".format(
-                            rate_limit_reset_time, rate_limit_wait_seconds
-                        )
+                    logger.warning(
+                        f"Rate limit will recover at: {rate_limit_reset_time}, wait for {rate_limit_wait_seconds}s."
                     )
                     sleep(rate_limit_wait_seconds)
-                    self.logger.warning("Rate limit recovered")
-                # end if
-            # end if
+                    logger.warning("Rate limit recovered")
             return self.github
 
         def __exit__(self, type, value, tb):
             return
 
-    # end class
     wait_rate_limit.DEFAULT_GITHUB_OBJECT = DEFAULT_GITHUB_OBJECT
-    wait_rate_limit.logger = logger
 
     T = TypeVar("T")
 
@@ -84,24 +75,20 @@ class GitHubUtils:
             try:
                 with cls.wait_rate_limit(github) as g:
                     return call(g)
-                # end with
             except (GithubException, RateLimitExceededException) as e:
                 if e.status == 422:
-                    cls.logger.warning("Validation Error. Will not retry.")
+                    logger.warning("Validation Error. Will not retry.")
                     raise
                 else:
-                    cls.logger.warning("Unexpected exception during api call: {}".format(traceback.format_exc()))
+                    logger.warning(f"Unexpected exception during api call: {traceback.format_exc()}")
                     retry_times += 1
                     if retry_times > max_retry_times:
-                        cls.logger.warning("Exceeding max retry times {}".format(max_retry_times))
+                        logger.warning(f"Exceeding max retry times {max_retry_times}")
                         raise
-                    # end if
 
                     retry_wait_time = min(retry_times * 30, 600)
-                    cls.logger.warning("Will wait {} seconds before retry {}".format(retry_wait_time, retry_times))
+                    logger.warning(f"Will wait {retry_wait_time} seconds before retry {retry_times}")
                     sleep(retry_wait_time)
-            # end try
-        # end while
 
     @classmethod
     def search_repos(
@@ -120,7 +107,7 @@ class GitHubUtils:
         Searches the repos by querying GitHub API v3.
         :return: a list of full names of the repos match the query.
         """
-        cls.logger.debug("Search for repos with query {}, sort {}, order {}".format(q, sort, order))
+        logger.debug(f"Search for repos with query {q}, sort {sort}, order {order}")
         repos = list()
         num_repos = 0
         repos_iterator = iter(github.search_repositories(q, sort, order, **qualifiers))
@@ -132,7 +119,6 @@ class GitHubUtils:
                 if not is_allow_fork:
                     if repo.fork:
                         continue
-                # end if, if
 
                 repos.append(repo)
                 num_repos += 1
@@ -140,21 +126,14 @@ class GitHubUtils:
                 # Check number
                 if num_repos >= max_num_repos:
                     break
-                # end if
             except StopIteration:
                 break
-            except:
-                cls.logger.warning("Unknown exception: {}".format(traceback.format_exc()))
-                cls.logger.warning("Returning partial results")
+            except Exception:
+                logger.warning(f"Unknown exception: {traceback.format_exc()}")
+                logger.warning("Returning partial results")
                 break
-            # end try except
-        # end while
 
-        if num_repos < max_num_repos:
-            cls.logger.info("Got {}/{} repos".format(num_repos, max_num_repos))
-        else:
-            cls.logger.info("Got {}/{} repos".format(num_repos, max_num_repos))
-        # end if
+        logger.info(f"Got {num_repos}/{max_num_repos} repos")
 
         return repos
 
@@ -174,7 +153,7 @@ class GitHubUtils:
         Searches the users by querying GitHub API v3.
         :return: a list of usernames (login) of the users match the query.
         """
-        cls.logger.debug("Search for users with query {}, sort {}, order {}".format(q, sort, order))
+        logger.debug(f"Search for users with query {q}, sort {sort}, order {order}")
         users = list()
         num_users = 0
         users_iterator = iter(github.search_users(q, sort, order, **qualifiers))
@@ -188,21 +167,14 @@ class GitHubUtils:
                 # Check number
                 if num_users >= max_num_users:
                     break
-                # end if
             except StopIteration:
                 break
-            except:
-                cls.logger.warning("Unknown exception: {}".format(traceback.format_exc()))
-                cls.logger.warning("Returning partial results.")
+            except Exception:
+                logger.warning(f"Unknown exception: {traceback.format_exc()}")
+                logger.warning("Returning partial results.")
                 break
-            # end try except
-        # end while
 
-        if num_users < max_num_users:
-            cls.logger.warning("Got {}/{} users".format(num_users, max_num_users))
-        else:
-            cls.logger.info("Got {}/{} users".format(num_users, max_num_users))
-        # end if
+        logger.info(f"Got {num_users}/{max_num_users} users")
 
         return users
 
@@ -221,13 +193,11 @@ class GitHubUtils:
         """
         if strategies is None:
             strategies = ["search_repos", "search_users"]
-        # end if
 
         # Check supported strategies
         supported_strategies = ["search_repos", "search_users", "enum_users"]
         for strategy in strategies:
             assert strategy in supported_strategies, strategy
-        # end for
 
         names_repos = dict()
 
@@ -235,80 +205,68 @@ class GitHubUtils:
             # Strategy 1: search repos (limited to 1000)
             strategy = "search_repos"
             if strategy in strategies:
-                cls.logger.info("Using strategy {}".format(strategy))
+                logger.info(f"Using strategy {strategy}")
                 new_repos = cls.search_repos(
-                    "language:{}".format(language),
+                    f"language:{language}",
                     is_allow_fork=is_allow_fork,
                     max_retry_times=max_retry_times,
                     max_num_repos=max_num_repos,
                 )
                 for repo in new_repos:
                     names_repos[repo.full_name] = repo
-                # end for
-                cls.logger.warning("Progress {}/{} repos.".format(len(names_repos), max_num_repos))
+                logger.info(f"Progress {len(names_repos)}/{max_num_repos} repos.")
                 if len(names_repos) >= max_num_repos:
                     return list(names_repos.values())
-                # end if
-            # end if
 
             # Strategy 2: search users (~37000?)
             strategy = "search_users"
             if strategy in strategies:
-                cls.logger.info("Using strategy {}".format(strategy))
+                logger.info(f"Using strategy {strategy}")
                 s_users = set()
-                # s_users = s_users.union([u.login for u in cls.search_users("language:{}".format(language), sort="repositories", max_retry_times=max_retry_times)])
+                # sort can be chosen from {followers, repositories, joined}
                 s_users = s_users.union(
                     [
                         u.login
                         for u in cls.search_users(
-                            "language:{}".format(language), sort="followers", max_retry_times=max_retry_times
+                            f"language:{language}", sort="followers", max_retry_times=max_retry_times
                         )
                     ]
                 )
-                # s_users = s_users.union([u.login for u in cls.search_users("language:{}".format(language), sort="joined", max_retry_times=max_retry_times)])
                 users_count = 0
                 total_users_count = len(s_users)
                 for user in s_users:
                     try:
                         new_repos = cls.search_repos(
-                            "language:{} user:{}".format(language, user),
+                            f"language:{language} user:{user}",
                             is_allow_fork=is_allow_fork,
                             max_retry_times=max_retry_times,
                         )
                     except GithubException:
-                        cls.logger.warning("Cannot get the repos of user {}".format(user))
+                        logger.warning(f"Cannot get the repos of user {user}")
                         continue
-                    # end try
                     for repo in new_repos:
                         names_repos[repo.full_name] = repo
-                    # end for
                     users_count += 1
-                    cls.logger.debug(
-                        "Progress {}/{} repos, {}/{} users.".format(
-                            len(names_repos), max_num_repos, users_count, total_users_count
-                        )
+                    logger.debug(
+                        f"Progress {len(names_repos)}/{max_num_repos} repos, {users_count}/{total_users_count} users."
                     )
                     if len(names_repos) >= max_num_repos:
                         return list(names_repos.values())
-                    # end if
-                # end for
-            # end if
 
             # Strategy 3: enum users (?)
             strategy = "enum_users"
             if strategy in strategies:
-                cls.logger.warning("Strategy {} is not implemented yet.".format(strategy))
-                cls.logger.warning("Nothing happens.")
-            # end if
+                logger.warning(f"Strategy {strategy} is not implemented yet.")
+                logger.warning("Nothing happens.")
         except KeyboardInterrupt:
-            cls.logger.warning("Interrupted. Returning partial results.")
+            logger.warning("Interrupted. Returning partial results.")
         finally:
-            cls.logger.warning("Got {}/{} repos.".format(len(names_repos), max_num_repos))
+            logger.warning(f"Got {len(names_repos)}/{max_num_repos} repos.")
             return list(names_repos.values())
 
     @classmethod
     def is_url_valid_git_repo(cls, url: str) -> bool:
-        if BashUtils.run(f"git ls-remote {url}").return_code == 0:
+        if bash.run(f"git ls-remote {url}").returncode == 0:
             return True
         else:
             return False
