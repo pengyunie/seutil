@@ -1,5 +1,5 @@
 from random import shuffle
-from typing import *
+from typing import Iterable, Sequence, TypeVar
 
 """
 Miscellaneous utility functions.
@@ -75,10 +75,10 @@ def itos_human_readable(value: int, precision: int = 1) -> str:
     return str(value)
 
 
-def chunks(l, n):
-    """Yield successive n-sized chunks from l."""
-    for i in range(0, len(l), n):
-        yield l[i : i + n]
+def chunks(seq, n):
+    """Yield successive n-sized chunks from a sequence."""
+    for i in range(0, len(seq), n):
+        yield seq[i : i + n]
 
 
 # Class Property
