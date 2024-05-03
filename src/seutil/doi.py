@@ -49,8 +49,9 @@ class AddDOIMiddleware(BlockMiddleware):
                         authors = items[0]["author"]
                         if authors:
                             for author in authors:
-                                # given and family
-                                for key in ["given", "family"]:
+                                # Check family name
+                                # Note: do not check given name as it may be abbreviated
+                                for key in ["family"]:
                                     if key in author:
                                         if author[key].lower() not in author_str:
                                             same_author = False
@@ -132,4 +133,4 @@ def main(bib_path: str):
 
 
 if __name__ == "__main__":
-    main("bib.bib")
+    main("/Users/liuyu/projects/ijacoco-paper/bib.bib")
