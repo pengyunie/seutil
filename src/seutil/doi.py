@@ -78,9 +78,10 @@ class TitleCaseMiddleware(BlockMiddleware):
 
 REMOVED_ENCLOSING_KEY = "removed_enclosing"
 
-
-class RemoveEnclosingMiddleware(BlockMiddleware):
-    """Remove enclosing characters from values such as field.
+class CleanFieldMiddleware(BlockMiddleware):
+    """Clean the field
+    1. Remove enclosing characters from values such as field.
+    2. Remove organization, publisher, and address fields if they exist.
 
     This middleware removes enclosing characters from a field value.
     It is useful when the field value is enclosed in braces or quotes
@@ -113,16 +114,24 @@ class RemoveEnclosingMiddleware(BlockMiddleware):
         field: Field
         metadata = dict()
         for field in entry.fields:
+            # Remove enclosing characters from the field value
+            # Otherwise, the enclosing characters will be included in the value, like author = {{Erik Lundsten}}
             stripped, enclosing = self._strip_enclosing(field.value)
             field.value = stripped
             metadata[field.key] = enclosing
         entry.parser_metadata[self.metadata_key()] = metadata
+        
+        # Remove organization, publisher, and address fields if they exist
+        fields_to_remove = ["organization", "publisher", "address"]
+        for field_key in fields_to_remove:
+            if field_key in entry.fields_dict:
+                entry.fields.remove(entry.fields_dict[field_key])
         return entry
 
 
 def load_and_update_bib(input_path, output_path):
     bib_database = bibtexparser.parse_file(
-        input_path, parse_stack=[RemoveEnclosingMiddleware(), AddDOIMiddleware(), TitleCaseMiddleware()]
+        input_path, parse_stack=[CleanFieldMiddleware(), AddDOIMiddleware(), TitleCaseMiddleware()]
     )
     # dump the updated bibtex string to a file
     bibtexparser.write_file(output_path, bib_database)
