@@ -133,4 +133,4 @@ def main(bib_path: str):
 
 
 if __name__ == "__main__":
-    main("/Users/liuyu/projects/ijacoco-paper/bib.bib")
+    main("bib.bib")
