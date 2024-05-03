@@ -30,6 +30,9 @@ dependencies = [
     "typing_inspect>=0.4.0",
     "unidiff>=0.5.5",
     "xmltodict>=0.2.2",
+    "request>=2.28.1",
+    "bibtexparser>=2.0.0b7",
+    "titlecase>=2.4.1",
 ]
 
 [project.optional-dependencies]
