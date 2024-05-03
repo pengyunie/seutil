@@ -1,11 +1,11 @@
-import requests
-import bibtexparser
-
 # According to its document, instead of running `pip install bibtexparser`, users are suggested to run `pip install bibtexparser --pre`, which installs the  bibtexparser v2.
+import bibtexparser
 from bibtexparser.middlewares import BlockMiddleware
 from bibtexparser.middlewares import RemoveEnclosingMiddleware
 from typing import Tuple, Union
 from bibtexparser.model import Entry, Field
+import re
+import requests
 from titlecase import titlecase
 
 
@@ -44,6 +44,7 @@ class AddDOIMiddleware(BlockMiddleware):
                 doi = items[0]["DOI"]
                 # Verify author
                 if author_str:
+                    author_str = re.sub(r"[^a-z0-9]", "", author_str)
                     same_author = True
                     if "author" in items[0]:
                         authors = items[0]["author"]
@@ -51,11 +52,13 @@ class AddDOIMiddleware(BlockMiddleware):
                             for author in authors:
                                 # Check family name
                                 # Note: do not check given name as it may be abbreviated
-                                for key in ["family"]:
-                                    if key in author:
-                                        if author[key].lower() not in author_str:
-                                            same_author = False
-                                            break
+                                if "family" in author:
+                                    # Change to lowercase and remove non-alphanumeric characters
+                                    family_name = author["family"].lower()
+                                    family_name = re.sub(r"[^a-z0-9]", "", family_name)
+                                    if family_name not in author_str:
+                                        same_author = False
+                                        break
                     if not same_author:
                         return "No DOI found"
                 return f"https://doi.org/{doi}"
@@ -77,6 +80,7 @@ class TitleCaseMiddleware(BlockMiddleware):
 
 
 REMOVED_ENCLOSING_KEY = "removed_enclosing"
+
 
 class CleanFieldMiddleware(BlockMiddleware):
     """Clean the field
@@ -120,7 +124,7 @@ class CleanFieldMiddleware(BlockMiddleware):
             field.value = stripped
             metadata[field.key] = enclosing
         entry.parser_metadata[self.metadata_key()] = metadata
-        
+
         # Remove organization and publisher fields if they exist
         fields_to_remove = ["organization", "publisher"]
         for field_key in fields_to_remove:
