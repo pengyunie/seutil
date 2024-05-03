@@ -81,7 +81,7 @@ REMOVED_ENCLOSING_KEY = "removed_enclosing"
 class CleanFieldMiddleware(BlockMiddleware):
     """Clean the field
     1. Remove enclosing characters from values such as field.
-    2. Remove organization, publisher, and address fields if they exist.
+    2. Remove organization and publisher fields if they exist.
 
     This middleware removes enclosing characters from a field value.
     It is useful when the field value is enclosed in braces or quotes
@@ -121,8 +121,8 @@ class CleanFieldMiddleware(BlockMiddleware):
             metadata[field.key] = enclosing
         entry.parser_metadata[self.metadata_key()] = metadata
         
-        # Remove organization, publisher, and address fields if they exist
-        fields_to_remove = ["organization", "publisher", "address"]
+        # Remove organization and publisher fields if they exist
+        fields_to_remove = ["organization", "publisher"]
         for field_key in fields_to_remove:
             if field_key in entry.fields_dict:
                 entry.fields.remove(entry.fields_dict[field_key])
