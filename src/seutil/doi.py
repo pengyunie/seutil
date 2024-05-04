@@ -12,7 +12,7 @@ from titlecase import titlecase
 class AddDOIMiddleware(BlockMiddleware):
     def transform_entry(self, entry, library):
         """Add DOI to the entry if it is missing."""
-        if entry.entry_type == "online":
+        if entry.entry_type in ["online", "misc"]:
             return entry
         if "title" in entry.fields_dict and "doi" not in entry.fields_dict:
             title = entry.get("title", None)
