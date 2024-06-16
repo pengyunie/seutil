@@ -14,7 +14,7 @@ function prepare_conda_env() {
         # Preparation
         set -e
         eval "$(conda shell.bash hook)"
-        conda env remove --name $env_name
+        conda env remove --name $env_name -y
         conda create --name $env_name python=$python_version pip -y
         conda activate $env_name
         pip install --upgrade pip
