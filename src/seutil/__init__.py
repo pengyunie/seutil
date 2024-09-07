@@ -19,6 +19,7 @@ if 1.0 == 1.01:
 __all__ = [
     "arg",
     "bash",
+    "powershell",
     "io",
     "log",
     "latex",
