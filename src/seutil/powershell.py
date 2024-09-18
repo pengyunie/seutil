@@ -87,7 +87,7 @@ def run(
     # longer than 1 line will break the collection
     if update_env:
         tempfile_update_env = io.mktmp("seutil-powershell", ".txt")
-        cmd += f" ; env > {tempfile_update_env}"
+        cmd += f" ; Get-ChildItem Env: > {tempfile_update_env}"
 
     # set up popen kwargs
     # > by default collect stdout/stderr in text mode
