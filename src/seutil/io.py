@@ -280,7 +280,7 @@ class TypeAdapter:
             if isobj == isobj_predefined.type_eq:
 
                 def isobj(x):
-                    return type(x) == clz
+                    return type(x) is clz
 
             elif isobj == isobj_predefined.isinstance:
 
@@ -537,7 +537,7 @@ def deserialize(
             else:
                 return data
 
-        if clz_origin == tuple:
+        if clz_origin is tuple:
             # Unpack list to tuple
             return tuple(
                 [
@@ -554,7 +554,7 @@ def deserialize(
             # Unpack list
             ret = [deserialize(x, clz_args[0] if generic else None, error=error) for x in data]
 
-            if clz_origin != list:
+            if clz_origin is not list:
                 # Convert to appropriate type
                 return clz_origin(ret)
             else:
@@ -586,7 +586,7 @@ def deserialize(
             )
             for k, v in data.items()
         }
-        if clz_origin != dict:
+        if clz_origin is not dict:
             # Convert to appropriate type
             obj_origin = clz_origin()
             obj_origin.update(ret)
@@ -640,9 +640,9 @@ def deserialize(
         return obj
 
     # Primitive types
-    if clz_origin == type(data):
+    if clz_origin is type(data):
         return data
-    if clz_origin == float and isinstance(data, int):
+    if clz_origin is float and isinstance(data, int):
         return data
 
     if error == "raise":
