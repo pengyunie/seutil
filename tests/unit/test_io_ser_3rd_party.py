@@ -100,15 +100,10 @@ class Test_io_ser_numpy:
         "obj",
         [
             np.csingle(1.0 + 1.0j),
-            np.singlecomplex(1.1 + 1.1j),
             np.complex64(1.2 + 1.2j),
             np.cdouble(2.0 + 2.0j),
-            np.cfloat(2.1 + 2.1j),
-            np.complex_(2.2 + 2.2j),
             np.complex128(2.3 + 2.3j),
             np.clongdouble(3.0 + 3.0j),
-            np.clongfloat(3.1 + 3.1j),
-            np.longcomplex(3.2 + 3.2j),
             np.complex256(3.3 + 3.3j),
         ],
     )
