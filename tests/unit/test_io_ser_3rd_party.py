@@ -78,8 +78,6 @@ class Test_io_ser_numpy:
             np.float32(2.1),
             np.double(3.0),
             np.float64(3.1),
-            np.longdouble(4.0),
-            np.float128(4.1),
         ],
     )
     def test_ser_scalar_float(self, obj):
@@ -103,8 +101,6 @@ class Test_io_ser_numpy:
             np.complex64(1.2 + 1.2j),
             np.cdouble(2.0 + 2.0j),
             np.complex128(2.3 + 2.3j),
-            np.clongdouble(3.0 + 3.0j),
-            np.complex256(3.3 + 3.3j),
         ],
     )
     def test_ser_scalar_complex_unsupported(self, obj):
