@@ -19,7 +19,7 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
 ]
 dependencies = [
-    "ijson~=3.1.4",
+    "ijson>=3.1.4,<3.4.0",
     "igraph>=0.9.10",
     "jsonargparse[signatures]>=4.1.4",
     "lazy-import>=0.2.2",
