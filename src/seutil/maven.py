@@ -10,7 +10,23 @@ from . import bash, io, log, project
 
 logger = log.get_logger(__name__, log.INFO)
 
-SKIPS = "-Djacoco.skip -Dcheckstyle.skip -Drat.skip -Denforcer.skip -Danimal.sniffer.skip -Dmaven.javadoc.skip -Dfindbugs.skip -Dwarbucks.skip -Dmodernizer.skip -Dimpsort.skip -Dpmd.skip -Dxjc.skip -Dair.check.skip-all -Dfmt.skip -Dgpg.skip"
+
+PLUGIN_SKIP_DICT = {
+    "jacoco": "-Djacoco.skip",
+    "checkstyle": "-Dcheckstyle.skip",
+    "rat": "-Drat.skip",
+    "enforcer": "-Denforcer.skip",
+    "animal-sniffer": "-Danimal.sniffer.skip",
+    "javadoc": "-Dmaven.javadoc.skip",
+    "findbugs": "-Dfindbugs.skip",
+    "warbucks": "-Dwarbucks.skip",
+    "modernizer": "-Dmodernizer.skip",
+    "impsort": "-Dimpsort.skip",
+    "pmd": "-Dpmd.skip",
+    "xjc": "-Dxjc.skip",
+    "airlift": "-Dair.check.skip-all",
+}
+SKIPS = " ".join(PLUGIN_SKIP_DICT.values())
 
 
 @dataclasses.dataclass
@@ -125,7 +141,7 @@ class MavenModule:
                 if retry_with_package:
                     bash.run(f"mvn package -DskipTests {SKIPS}", 0, timeout=timeout)
                 else:
-                    raise RuntimeError(f"Failed to compile")
+                    raise RuntimeError("Failed to compile")
 
     @property
     def dir(self) -> Path:
@@ -152,8 +168,13 @@ class MavenProject:
         maven_proj = cls(dir=project.dir)
         # detect modules from the project
         with io.cd(maven_proj.dir):
+            # ask Maven to execute the `echo ${project.groupId}:...` command under each sub-module
             rr = bash.run(
-                """mvn -Dexec.executable='bash' -Dexec.args='-c '"'"'echo ${project.groupId}:${project.artifactId}:${project.version} ${project.packaging} ${PWD}'"'"'' exec:exec -q""",
+                "mvn -Dexec.executable='bash' -Dexec.args='-c '"
+                + '''"'"'''
+                + "'echo ${project.groupId}:${project.artifactId}:${project.version} ${project.packaging} ${PWD}'"
+                + '''"'"'''
+                + " exec:exec -q",
                 0,
             )
         for line in rr.stdout.splitlines():
@@ -195,7 +216,7 @@ class MavenProject:
                 if retry_with_package:
                     bash.run(f"mvn package -DskipTests {SKIPS}", 0, timeout=timeout)
                 else:
-                    raise RuntimeError(f"Failed to compile")
+                    raise RuntimeError("Failed to compile")
 
     def install(self, timeout=600, clean=False):
         with io.cd(self.dir):
@@ -203,7 +224,7 @@ class MavenProject:
                 bash.run("mvn clean", 0)
             rr = bash.run(f"mvn install -DskipTests {SKIPS}", 0, timeout=timeout)
             if rr.returncode != 0:
-                raise RuntimeError(f"Failed to install")
+                raise RuntimeError("Failed to install")
 
     def get_module_by_path(self, file_path: Path) -> MavenModule:
         module_path = file_path.parent

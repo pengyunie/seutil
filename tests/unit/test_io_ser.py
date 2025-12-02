@@ -85,9 +85,9 @@ def test_ser_list(obj):
 
 @pytest.mark.xfail()
 def test_ser_ouroboros_list():
-    l = []
-    l.append(l)
-    check_serialization_ok(obj=l)
+    lst = []
+    lst.append(lst)
+    check_serialization_ok(obj=lst)
 
 
 def test_ser_tuple():

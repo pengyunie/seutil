@@ -9,7 +9,7 @@ from seutil import io
 TimeoutExpired = subprocess.TimeoutExpired
 
 
-class BashError(RuntimeError):
+class PowerShellError(RuntimeError):
     def __init__(
         self,
         cmd: str,
@@ -57,7 +57,7 @@ def run(
     **kwargs,
 ) -> subprocess.CompletedProcess:
     """
-    Run a bash command using subprocess.run.  The command will be run using "bash -c".
+    Run a powershell command using subprocess.run.  The command will be run using "powershell -Command".
 
     Some arguments' default values are changed (but can be overridden with kwargs):
     * capture_output=True, text=True:  capture all stdout and stderr.
@@ -79,15 +79,15 @@ def run(
     :param timeout: number of seconds to wait
     :param kwargs: other arguments passed to subprocess.Popen
     :return: the subprocess.CompletedProcess object, has stdout, stderr, returncode fields
-    :raises: BashError if the command's output did not match check_returncode
+    :raises: PowerShellError if the command's output did not match check_returncode
     :raises: subprocess.TimeoutExpired if the command timed out
     """
     # potentially append `env` to command to collect the environment variables
     # TODO: this is hacky: it may mess up some commands; the env won't be collected when timeout; and variable values
     # longer than 1 line will break the collection
     if update_env:
-        tempfile_update_env = io.mktmp("seutil-bash", ".txt")
-        cmd += f" ; env > {tempfile_update_env}"
+        tempfile_update_env = io.mktmp("seutil-powershell", ".txt")
+        cmd += f" ; Get-ChildItem Env: > {tempfile_update_env}"
 
     # set up popen kwargs
     # > by default collect stdout/stderr in text mode
@@ -101,9 +101,9 @@ def run(
     # (https://alexandra-zaharia.github.io/posts/kill-subprocess-and-its-children-on-timeout-python/)
     # TODO: when the minimum Python requirement is >= 3.11, use process_group instead of start_new_session
     kwargs["start_new_session"] = True
-
-    # run the command, similar to `subprocess.run` but is specific to Bash and handle timeout more properly
-    with subprocess.Popen(["bash", "-c", cmd], **kwargs) as process:
+    print(f"powershell -Command {cmd}")
+    # run the command, similar to `subprocess.run` but is specific to PowerShell and handle timeout more properly
+    with subprocess.Popen(f"powershell -Command {cmd}", shell=True, **kwargs) as process:
         try:
             stdout, stderr = process.communicate(timeout=timeout)
         except TimeoutExpired:
@@ -120,11 +120,11 @@ def run(
 
     # check return code
     if check_returncode is not None and completed_process.returncode != check_returncode:
-        raise BashError(cmd, completed_process, check_returncode)
+        raise PowerShellError(cmd, completed_process, check_returncode)
 
     if completed_process.returncode != 0 and check_returncode is not None and warn_nonzero:
         warnings.warn(
-            f"Bash command `{cmd}` returned non-zero exit code: {completed_process.returncode}",
+            f"PowerShell command `{cmd}` returned non-zero exit code: {completed_process.returncode}",
             RuntimeWarning,
         )
 

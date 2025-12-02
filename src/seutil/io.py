@@ -216,7 +216,7 @@ def mktmp_dir(
 
 # object before serialization
 TObj = TypeVar("TObj")
-# data after serialization, usually contain only primitive types and simple list and dict structures, that can be directly stored to disk
+# data after serialization, should only use python-primitive types and structures that can be directly stored to disk
 TData = TypeVar("TData")
 # the target of deserialization, either a type or a type hint
 TType = TypeVar("TType")
@@ -280,7 +280,7 @@ class TypeAdapter:
             if isobj == isobj_predefined.type_eq:
 
                 def isobj(x):
-                    return type(x) == clz
+                    return type(x) is clz
 
             elif isobj == isobj_predefined.isinstance:
 
@@ -386,7 +386,8 @@ def serialize(
     Serializes an object into a data structure with only primitive types, list, dict.
     If fmt is provided, its formatting constraints are taken into account. Supported fmts:
     * json, jsonPretty, jsonNoSort, jsonList: dict only have str keys.
-    TODO: move this considering of formatting constraints to a separate function, and let it automatically happen during dump; probably also add a reverse function which happens during load.
+    TODO: move this considering of formatting constraints to a separate function, and let it automatically happen during
+    dump; probably also add a reverse function which happens during load.
 
     :param obj: the object to be serialized.
     :param fmt: (optional) the target format.
@@ -494,7 +495,7 @@ def deserialize(
         try:
             return deserialize(data, inner_clz, error=error)
         except DeserializationError as e:
-            raise DeserializationError(data, clz, f"(Optional removed) " + e.reason)
+            raise DeserializationError(data, clz, "(Optional removed) " + e.reason)
 
     # Union type: try each inner type
     if typing_inspect.is_union_type(clz):
@@ -536,11 +537,11 @@ def deserialize(
             else:
                 return data
 
-        if clz_origin == tuple:
+        if clz_origin is tuple:
             # Unpack list to tuple
             return tuple(
                 [
-                    # If the list has more items than Tuple[xxx] declared (e.g., [1, 2, 3], Tuple[int]), repeat the last declared type
+                    # if more objects found than types in Tuple (e.g., [1, 2, 3] vs. Tuple[int]), repeat the last type
                     deserialize(
                         x,
                         clz_args[min(i, len(clz_args) - 1)] if generic else None,
@@ -553,7 +554,7 @@ def deserialize(
             # Unpack list
             ret = [deserialize(x, clz_args[0] if generic else None, error=error) for x in data]
 
-            if clz_origin != list:
+            if clz_origin is not list:
                 # Convert to appropriate type
                 return clz_origin(ret)
             else:
@@ -574,7 +575,7 @@ def deserialize(
 
         if clz_origin == collections.OrderedDict:
             warnings.warn(
-                f"The order of items in OrderedDict may not be preserved during deserialization",
+                "The order of items in OrderedDict may not be preserved during deserialization",
                 InfoLossWarning,
             )
 
@@ -585,7 +586,7 @@ def deserialize(
             )
             for k, v in data.items()
         }
-        if clz_origin != dict:
+        if clz_origin is not dict:
             # Convert to appropriate type
             obj_origin = clz_origin()
             obj_origin.update(ret)
@@ -639,9 +640,9 @@ def deserialize(
         return obj
 
     # Primitive types
-    if clz_origin == type(data):
+    if clz_origin is type(data):
         return data
-    if clz_origin == float and type(data) == int:
+    if clz_origin is float and isinstance(data, int):
         return data
 
     if error == "raise":

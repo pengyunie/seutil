@@ -1,6 +1,7 @@
 import copy
 
 import pytest
+
 import seutil as su
 
 

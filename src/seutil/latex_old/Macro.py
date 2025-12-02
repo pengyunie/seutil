@@ -1,3 +1,4 @@
+# ruff: noqa
 import re
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, TypeVar, Union

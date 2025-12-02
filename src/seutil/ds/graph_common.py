@@ -6,7 +6,8 @@ import igraph
 """
 Base classes for graph-like data types (including trees and constrained graphs).
 
-Currently we use igraph as the underlying graph library, but we add a level of abstraction to make it better fits our needs, and also make it possible to switch to other libraries in the future.
+Currently we use igraph as the underlying graph library, but we add a level of abstraction to make it better fits our 
+needs, and also make it possible to switch to other libraries in the future.
 """
 
 
@@ -30,7 +31,7 @@ class InvariantError(ValueError):
 
 class Node:
     """
-    Wraps an igraph.Vertex, but routes back all modification operations to the container class for checking the invariants.
+    Wraps an igraph.Vertex, but routes back all modifications to the container class for checking the invariants.
     """
 
     def __init__(self, vertex: igraph.Vertex, container: "GraphLikeADT"):
@@ -57,7 +58,7 @@ class Node:
 
 class Edge:
     """
-    Wraps an igraph.Edge, but routes back all modification operations to the container class for checking the invariants.
+    Wraps an igraph.Edge, but routes back all modifications to the container class for checking the invariants.
     """
 
     def __init__(self, edge: igraph.Edge, container: "GraphLikeADT"):
@@ -72,9 +73,9 @@ class GraphLikeADT:
     This wraps a igraph.Graph, but with several differences:
     * uses a unique string key to access the nodes that will *NOT* be affected by the removal of other nodes;
     * checks invariants to ensure the validity of the data structure when modifying the nodes and edges;
-    * all modification operations called on nodes and edges will also be routed back to the container class for checking the invariants.
+    * all modifications will also be routed back to the container class for checking the invariants.
 
-    "Modification" means adding or removing nodes and edges. It does not include changing the properties of nodes or edges.
+    "Modification" includes adding/removing nodes/edges, but does not include changing the properties of nodes or edges.
     """
 
     def __init__(self, directed: bool = True):
@@ -85,7 +86,8 @@ class GraphLikeADT:
     def check_invariants(self) -> bool:
         """
         Checks if the data structure is in a valid state.
-        Default implementation checks nothing, which allows any graph. Subclasses should override this method to implement the specific invariants.
+        Default implementation checks nothing, which allows any graph. Subclasses should override this method to
+        implement the specific invariants.
         """
         return True
 
@@ -97,7 +99,8 @@ class GraphLikeADT:
     ) -> bool:
         """
         Checks if adding a node with the given parents and children is valid, *before* adding the node.
-        Default implementation does nothing here and defers the invariants checking to after adding the node. Subclasses can override this method to perform incremental checks of invariants.
+        Default implementation does nothing here and defers the invariants checking to after adding the node. Subclasses
+        can override this method to perform incremental checks of invariants.
         """
         return True
 
@@ -110,7 +113,8 @@ class GraphLikeADT:
     ) -> bool:
         """
         Checks if adding a node with the given parents and children is valid, *after* adding the node.
-        Default implementation calls check_invariants to check the entire data structure. Subclasses can override this method to perform incremental checks of invariants, either here or before adding the node.
+        Default implementation calls check_invariants to check the entire data structure. Subclasses can override this
+        method to perform incremental checks of invariants, either here or before adding the node.
         """
         return self.check_invariants()
 

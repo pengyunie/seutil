@@ -10,7 +10,7 @@ class test_log(unittest.TestCase):
         # only setup stderr handler
         su.log.setup()
         logger = su.log.get_logger(__name__)
-        logger.info(f"[0] Test logging to stderr only")
+        logger.info("[0] Test logging to stderr only")
         self.assertEqual(1, len(logging.getLogger(LOGGING_NAMESPACE).handlers))
 
         # setup both stderr handler and file handler
@@ -34,7 +34,7 @@ class test_log(unittest.TestCase):
         # again, only setup stderr handler
         su.log.setup()
         self.assertEqual(1, len(logging.getLogger(LOGGING_NAMESPACE).handlers))
-        logger.info(f"[3] Test logging to stderr only")
+        logger.info("[3] Test logging to stderr only")
         logf1_3 = su.io.load(f1)
         logf2_3 = su.io.load(f2)
         self.assertEqual(logf1_2, logf1_3)

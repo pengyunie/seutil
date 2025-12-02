@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+
 import seutil as su
 
 PREFIX = "testioprefix"
