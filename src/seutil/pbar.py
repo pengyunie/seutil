@@ -59,7 +59,7 @@ class PBarManager:
 
     def format_summary(self, instance):
         if instance.total is not None:
-            return f"{instance.n/instance.total:.0%}"
+            return f"{instance.n / instance.total:.0%}"
         else:
             return f"{instance.n:d}"
 

@@ -70,7 +70,7 @@ class BashUtils:
                     with open(tempfile_stdout, "w") as f:
                         f.write(stdout)
                     # end with
-                    stdout = f"{stdout[:cls.PRINT_LIMIT]} //////////TOO LONG; dumped to {tempfile_stdout}//////////"
+                    stdout = f"{stdout[: cls.PRINT_LIMIT]} //////////TOO LONG; dumped to {tempfile_stdout}//////////"
                 # end if
                 if len(stderr) > cls.PRINT_LIMIT:
                     tempfile_stderr = (
@@ -81,7 +81,7 @@ class BashUtils:
                     with open(tempfile_stderr, "w") as f:
                         f.write(stderr)
                     # end with
-                    stderr = f"{stderr[:cls.PRINT_LIMIT]} //////////TOO LONG; dumped to {tempfile_stderr}//////////"
+                    stderr = f"{stderr[: cls.PRINT_LIMIT]} //////////TOO LONG; dumped to {tempfile_stderr}//////////"
                 # end if
                 raise RuntimeError(
                     f"Expected {expected_return_code} but returned {return_code} while executing bash command '{cmd}'.\nstdout: {stdout}\nstderr: {stderr}"
