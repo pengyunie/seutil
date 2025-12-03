@@ -1,0 +1,42 @@
+name: Python Unit Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  formatting-linting:
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+      - name: install dependencies
+        run: uv sync --group dev
+      - name: run ruff format
+        run: uv run ruff format --check .
+      - name: run ruff check
+        run: uv run ruff check --output-format=github .
+
+  unit-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+      - name: install dependencies
+        run: uv sync --group dev --group dev-opt --python ${{ matrix.python }}
+      - name: run unit tests
+        run: uv run pytest tests/unit --cov-report=term-missing --cov-append
