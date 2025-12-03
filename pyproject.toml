@@ -7,7 +7,7 @@ license = { file = "LICENSE" }
 authors = [{ name = "Pengyu Nie", email = "prodigy.sov@gmail.com" }]
 requires-python = ">=3.9"
 dependencies = [
-    "ijson~=3.1.4",
+    "ijson>=3.1.4,<3.5.0",
     "igraph>=0.9.10",
     "jsonargparse[signatures]>=4.1.4",
     "lazy-import>=0.2.2",
