@@ -8,7 +8,6 @@ on:
 
 jobs:
   integration-tests:
-    container: texlive/texlive:latest
     strategy:
       fail-fast: false
       matrix:
@@ -20,6 +19,15 @@ jobs:
         uses: astral-sh/setup-uv@v4
         with:
           version: "latest"
+      - name: setup env for integration tests - texlive
+        uses: TeX-Live/setup-texlive-action@v3
+        with:
+          version: latest
+          packages: |
+            scheme-medium
+            latexmk
+            breakurl
+            datetime
       - name: install dependencies
         run: uv sync --group dev --group dev-opt
       - name: run integration tests
