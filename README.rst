@@ -4,7 +4,7 @@ Project ``seutil``
 |PyPI|_ |GitHubRelease|_ |GitHubWorkflow|_
 
 Python utilities for SE(+ML) research. This library stays reasonably
-up-to-date with the latest Python 3, currently supporting 3.8~3.11.
+up-to-date with the latest Python 3, currently supporting 3.9~3.14.
 
 **Mature functions:**
 
@@ -35,6 +35,6 @@ Full documentation can be found at `readthedocs`_.
 .. _PyPI: https://pypi.org/project/seutil/
 .. |GitHubRelease| image:: https://img.shields.io/github/v/release/pengyunie/seutil?include_prereleases
 .. _GitHubRelease: https://github.com/pengyunie/seutil/releases
-.. |GitHubWorkflow| image:: https://img.shields.io/github/actions/workflow/status/pengyunie/seutil/python-build.yml?branch=master
-.. _GitHubWorkflow: https://github.com/pengyunie/seutil/actions/workflows/python-build.yml
+.. |GitHubWorkflow| image:: https://img.shields.io/github/actions/workflow/status/pengyunie/seutil/python-unit-tests.yml?branch=main
+.. _GitHubWorkflow: https://github.com/pengyunie/seutil/actions/workflows/python-unit-tests.yml
 .. _readthedocs: https://seutil.readthedocs.io/en/latest/
