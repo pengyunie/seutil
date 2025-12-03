@@ -69,6 +69,7 @@ def test_ser_primitives_unsupported(obj):
     check_serialization_ok(obj=obj, data=obj)
 
 
+# fmt: off
 @pytest.mark.parametrize(
     "obj",
     [
@@ -76,9 +77,10 @@ def test_ser_primitives_unsupported(obj):
         [1, 2, 3],
         [1, 42.24, "Hello, world!"],
         list(range(100)),
-        [1, [1, 1], [[1,], [2,], [1,]]],  # fmt: skip
+        [1, [1, 1], [[1,], [2,], [1,]]],
     ],
 )
+# fmt: on
 def test_ser_list(obj):
     check_serialization_ok(obj=obj, data=obj)
 
