@@ -24,10 +24,7 @@ jobs:
         with:
           version: latest
           packages: |
-            scheme-medium
-            latexmk
-            breakurl
-            datetime
+            scheme-full
       - name: install dependencies
         run: uv sync --group dev --group dev-opt
       - name: run integration tests
