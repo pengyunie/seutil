@@ -408,7 +408,7 @@ def serialize(
     elif dataclasses.is_dataclass(obj):
         # Dataclass
         return {f.name: serialize(getattr(obj, f.name), fmt) for f in dataclasses.fields(obj)}
-    elif isinstance(obj, (list, set, tuple)):
+    elif isinstance(obj, (list, set, frozenset, tuple, collections.deque)):
         # List-like: uniform to list; recursively serialize content
         return [serialize(item, fmt) for item in obj]
     elif isinstance(obj, dict):
@@ -529,7 +529,7 @@ def deserialize(
                 return adapter.deserializer(data)
 
     # List-like types
-    if clz_origin in [list, tuple, set, collections.deque, frozenset]:
+    if clz_origin in [list, set, frozenset, tuple, collections.deque]:
         if not isinstance(data, list):
             if error == "raise":
                 raise DeserializationError(data, clz, "Data does not have list structure")

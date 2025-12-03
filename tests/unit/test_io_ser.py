@@ -117,11 +117,18 @@ def test_ser_set():
     )
 
 
-@pytest.mark.xfail(reason="to be added soon")
 def test_ser_deque():
     check_serialization_ok(
         obj=collections.deque([1, 2, 3]),
         data=[1, 2, 3],
+    )
+
+
+def test_ser_frozenset():
+    check_serialization_ok(
+        obj=frozenset({"frozenset", "becomes", "list", "modulo", "order"}),
+        data=["frozenset", "becomes", "list", "modulo", "order"],
+        data_eq=lambda a, b: sorted(a) == sorted(b),
     )
 
 
@@ -267,4 +274,37 @@ def test_ser_data_class_post_init():
     check_serialization_ok(
         obj=obj,
         data={"a": 1, "b": 2.3, "c": "overridden"},
+    )
+
+
+def test_ser_data_class_complex_structures():
+    @dataclasses.dataclass
+    class ExampleDataclass:
+        a: int
+        b: set
+        c: frozenset = dataclasses.field(default_factory=lambda: frozenset([10, 20]))
+        d: collections.deque = dataclasses.field(default_factory=lambda: collections.deque([100, 200]))
+        e: str = "default_string"
+        f: list = dataclasses.field(default_factory=list)
+
+    obj = ExampleDataclass(a=1, b={2, 3, 4})
+    # Complex structures serialize to lists, so we need custom comparison for the data
+    check_serialization_ok(
+        obj=obj,
+        data={
+            "a": 1,
+            "b": [2, 3, 4],
+            "c": [10, 20],
+            "d": [100, 200],
+            "e": "default_string",
+            "f": [],
+        },
+        data_eq=lambda a, b: (
+            a["a"] == b["a"]
+            and sorted(a["b"]) == sorted(b["b"])
+            and sorted(a["c"]) == sorted(b["c"])
+            and a["d"] == b["d"]  # deque preserves order
+            and a["e"] == b["e"]
+            and a["f"] == b["f"]
+        ),
     )
