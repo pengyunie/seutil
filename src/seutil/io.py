@@ -27,7 +27,6 @@ from typing import (
     Type,
     TypeVar,
     Union,
-    get_type_hints,
 )
 
 import typing_inspect
@@ -718,57 +717,6 @@ try:
         serializer=lambda x: serialize(x.tolist()),
         deserializer=torch.tensor,
     )
-except ImportError:
-    pass
-
-
-try:
-    import recordclass
-
-    def _is_obj_record_class(obj: Any) -> bool:
-        return obj is not None and isinstance(obj, recordclass.mutabletuple) or isinstance(obj, recordclass.dataobject)
-
-    def _is_clz_record_class(clz: Type) -> bool:
-        return (
-            clz is not None
-            and inspect.isclass(clz)
-            and (issubclass(clz, recordclass.mutabletuple) or issubclass(clz, recordclass.dataobject))
-        )
-
-    def _serialize_recordclass(obj) -> dict:
-        warnings.warn(
-            "The support for recordclass may be dropped in the future. Please consider using dataclass instead.",
-            DeprecationWarning,
-        )
-        if hasattr(obj, "__dict__"):
-            # Older versions of recordclass
-            return {k: serialize(v) for k, v in obj.__dict__.items()}
-        else:
-            # Newer versions of recordclass
-            return {f: serialize(getattr(obj, f)) for f in obj.__fields__}
-
-    def _deseralize_recordclass(data, clz) -> Any:
-        warnings.warn(
-            "The support for recordclass may be dropped in the future. Please consider using dataclass instead.",
-            DeprecationWarning,
-        )
-        field_values = {}
-        for f, t in get_type_hints(clz).items():
-            if f in data:
-                # TODO: the error parameter is lost
-                field_values[f] = deserialize(data.get(f), t)
-        return clz(**field_values)
-
-    set_adapter(
-        recordclass.RecordClass,
-        TypeAdapter(
-            isobj=_is_obj_record_class,
-            isclz=_is_clz_record_class,
-            serializer=_serialize_recordclass,
-            deserializer=_deseralize_recordclass,
-        ),
-    )
-
 except ImportError:
     pass
 

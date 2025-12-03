@@ -3032,20 +3032,6 @@ wheels = [
 ]
 
 [[package]]
-name = "recordclass"
-version = "0.23.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/bd/d0/32de6ae6d05ad21233b77e567d8c5d32af9be1b14c4f924e86059c8152b2/recordclass-0.23.1.tar.gz", hash = "sha256:cd6391030709d1cb42c6a901aa1053411ae5baf8762a5eb763e220be2489b3c9", size = 1252339, upload-time = "2025-04-14T20:14:48.523Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/25/9f/c88ba3a3a7c4393671efe2902a4fc2fe87de46855ddb1263849fc9f1b660/recordclass-0.23.1-cp310-cp310-win_amd64.whl", hash = "sha256:21075e51a5a0aad06961a585a3125ef42cb971733d6548b7733ad66b7dd9c603", size = 248871, upload-time = "2025-04-19T06:13:52.1Z" },
-    { url = "https://files.pythonhosted.org/packages/57/57/e7c61eff0271bfb0c343eba2b3d799eb3c1544b622d9f9b31dc19bc78fcb/recordclass-0.23.1-cp311-cp311-win_amd64.whl", hash = "sha256:a662ee44777e99c9dea0db182159a8154c4aae93a1547c8960ffd7e0099f26d9", size = 249242, upload-time = "2025-04-19T06:13:54.761Z" },
-    { url = "https://files.pythonhosted.org/packages/c0/43/6f2693abb1a566c517dfc57f888a282476d80bc0e04deac0c11162ed4224/recordclass-0.23.1-cp312-cp312-win_amd64.whl", hash = "sha256:03bef1c740f16fa2088e2eaec1c4d4d1fbafc6aae22682f974060560c7bf957b", size = 249234, upload-time = "2025-04-19T06:13:56.879Z" },
-    { url = "https://files.pythonhosted.org/packages/8b/5b/ce7b011b480a82651b108e6fb3d60d3d8d964ef8b0e51ec73ddc8cfbf83f/recordclass-0.23.1-cp313-cp313-win_amd64.whl", hash = "sha256:9b879f1763a295a80003ec4cf71bdbad77d3d185f3040bfe6ddcf5555b9908ac", size = 248953, upload-time = "2025-04-19T06:13:59.267Z" },
-    { url = "https://files.pythonhosted.org/packages/d8/2d/aa7124af5001400f0c8d86573d41c6f952c8a15c72d8979bcb8825da24ab/recordclass-0.23.1-cp38-cp38-win_amd64.whl", hash = "sha256:68ea8000607698a597b660e7bf66de789db911e21b3263da542fa20111fe5631", size = 248975, upload-time = "2025-04-19T06:14:01.426Z" },
-    { url = "https://files.pythonhosted.org/packages/b9/1a/3f60a415faae5d25b8ba583afc8797afd6fc9079a077df7b8a9e67640cca/recordclass-0.23.1-cp39-cp39-win_amd64.whl", hash = "sha256:19049197e27eb5e0cccaec768811977c7377cfb13e1735e98f3562a9819ceb89", size = 248929, upload-time = "2025-04-19T06:14:03.531Z" },
-]
-
-[[package]]
 name = "requests"
 version = "2.32.4"
 source = { registry = "https://pypi.org/simple" }
@@ -3165,7 +3151,6 @@ dev-opt = [
     { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pandas", version = "2.0.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
-    { name = "recordclass" },
     { name = "torch", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "torch", version = "2.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
     { name = "torch", version = "2.9.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
@@ -3197,7 +3182,6 @@ dev-opt = [
     { name = "ipykernel" },
     { name = "numpy" },
     { name = "pandas" },
-    { name = "recordclass" },
     { name = "torch" },
 ]
 
