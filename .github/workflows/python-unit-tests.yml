@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  formatting-linting:
+  format:
     continue-on-error: true
     runs-on: ubuntu-latest
     steps:
@@ -20,6 +20,18 @@ jobs:
         run: uv sync --group dev
       - name: run ruff format
         run: uv run ruff format --check .
+
+  lint:
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+      - name: install dependencies
+        run: uv sync --group dev
       - name: run ruff check
         run: uv run ruff check --output-format=github .
 
