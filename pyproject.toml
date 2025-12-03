@@ -30,7 +30,7 @@ classifiers = [
 
 [dependency-groups]
 dev = ["coverage[toml]", "pytest", "pytest-cov", "ruff"]
-dev-opt = ["numpy", "pandas", "torch", "recordclass", "ipykernel"]
+dev-opt = ["numpy", "pandas", "torch", "ipykernel"]
 
 [build-system]
 requires = ["uv_build>=0.9.9,<0.10.0"]

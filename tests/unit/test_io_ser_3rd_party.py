@@ -1,6 +1,4 @@
-import collections
 import math
-from typing import Dict, Optional
 
 import pytest
 
@@ -165,27 +163,3 @@ class Test_io_ser_pytorch:
             data=4.2,
             obj_eq=self.torch.equal,
         )
-
-
-class Test_io_ser_recordclass:
-    recordclass = pytest.importorskip("recordclass")
-
-    def test_ser_record_class(self):
-        ExampleNamedTuple = collections.namedtuple("ExampleNamedTuple", ["e", "f", "g"])
-
-        class ExampleRecordClass(self.recordclass.RecordClass):
-            h: int
-            i: float
-            j: Dict[str, float] = None
-            k: Optional[ExampleNamedTuple] = None
-
-        with pytest.deprecated_call():
-            check_serialization_ok(
-                obj=ExampleRecordClass(h=4, i=0.5, j={"a": 4, "b": 6.0}, k=ExampleNamedTuple(99, [3, 5], 42.0)),
-                data={
-                    "h": 4,
-                    "i": 0.5,
-                    "j": {"a": 4, "b": 6.0},
-                    "k": {"e": 99, "f": [3, 5], "g": 42.0},
-                },
-            )
