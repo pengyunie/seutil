@@ -1,0 +1,26 @@
+name: Python Integration Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  integration-tests:
+    container: texlive/texlive:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+      - name: install dependencies
+        run: uv sync --group dev --group dev-opt
+      - name: run integration tests
+        run: uv run pytest tests/integration --cov-report=term-missing --cov-append
